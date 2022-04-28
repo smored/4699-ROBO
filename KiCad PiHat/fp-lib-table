@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "teensy")(type "KiCad")(uri "C:/Users/Mike/Documents/GitHub/4699-ROBO/teensy.pretty-master/teensy.pretty")(options "")(descr ""))
+)
