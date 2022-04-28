@@ -1,3 +1,4 @@
 (sym_lib_table
-  (lib (name Lec18-PCB_kicad-rescue)(type Legacy)(uri ${KIPRJMOD}/Lec18-PCB_kicad-rescue.lib)(options "")(descr ""))
+  (lib (name "Lec18-PCB_kicad-rescue")(type "Legacy")(uri "${KIPRJMOD}/Lec18-PCB_kicad-rescue.lib")(options "")(descr ""))
+  (lib (name "Teensy")(type "Legacy")(uri "C:/Users/Mike/Documents/GitHub/4699-ROBO/teensy_library-master/teensy_library-master/teensy.lib")(options "")(descr ""))
 )
