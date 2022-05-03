@@ -14,6 +14,9 @@ const int stepsPerRevolution = 200;
 enum mode { AUTO, MANUAL, NONE };
 enum automaticMode { startWait, target1, target2, target3, target4, finish};
 
+mode bigMode = MANUAL;
+automaticMode autoMode = startWait;
+
 // initialize the stepper library on pins 8 through 11:
 Stepper myStepperLeft(stepsPerRevolution, 8, 9, 10, 11);
 Stepper myStepperRight(stepsPerRevolution, 4, 5, 6, 7);
@@ -24,8 +27,6 @@ void setup() {
   myStepperLeft.setSpeed(20);
   // initialize the serial port:
   Serial.begin(9600);
-  mode bigMode = NONE;
-  automaticMode autoMode = startWait;
 }
 
 void loop() {
@@ -47,9 +48,9 @@ void loop() {
             input = readPI();
             if(input == STARTCMD){
               autoMode = target1;
-              input = NULL;
+              input = "NULL";
             }
-            else if(input == STOP){
+            else if(input == STOPCMD){
               bigMode = NONE;
             }
           
@@ -63,16 +64,17 @@ void loop() {
             if(input == STARTCMD){
               autoMode = target1;
             }
-            else if(input == STOP){
+            else if(input == STOPCMD){
               bigMode = NONE;
             }
+            break;
 
           //State 2
           case target2:
             //Sweeping turn to be in front of Target 2
             //Wait to receive confirmation that Target 2 has been hit
             //Goes to next state upon receiving the confirmation from PI
-
+            break;
           //State 3
           case target3:
             //Sweeping turn to be in front of Target 3
@@ -83,17 +85,17 @@ void loop() {
           case target4:
             //Wait to receive confirmation that Target 4 has been hit
             //Goes to next state upon receiving the confirmation from PI
-
+            break;
           //State 4 (Close Shot)
           //case target4:
             //Drive to front of 4th target
             //Wait to receive confirmation that Target 4 has been hit
             //Goes to next state upon receiving the confirmation from PI
-
+            //break;
           //State 5 (Long Shot)
           case finish:
             //Drive forward into end zone
-
+            break;
           //State 5 (Close Shot)
           //case finish:
             //Turn 180 degrees
@@ -105,11 +107,13 @@ void loop() {
       break;
     case MANUAL:
     //State Machine (Manual)
+      drive(2000, 500, 40);
+      delay(5000);
       break;
     default:
       if(readPI() == AUTOCMD){
         bigMode = AUTO;
-        autoMode = 
+        autoMode = startWait;
       }
       else if (readPI() == MANUALCMD){
         bigMode = MANUAL;
@@ -196,5 +200,5 @@ String readPI(){
     Serial.println(data);
     return data;
   }
-  return NULL;
+  return "NULL";
 }
