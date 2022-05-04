@@ -29,6 +29,20 @@ enum STATE {
     FIND_T4
 };
 
+enum PINS {
+ BUTTON = 23,
+ LED = 8,
+ SERVO = 20
+};
+
+enum SERVOENUM {
+ POS_MIDDLE = 1500,
+ POS_LEFT = 2500,
+ POS_RIGHT = 500,
+ WAIT_TIME = 650
+ };
+
+
 /** robot.h
  *
  * @brief header for robot main functions
@@ -75,5 +89,6 @@ public:
 
     // runs a loop checking for when to exit program
     void exitLoop();
+
 
 };

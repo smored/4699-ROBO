@@ -1,15 +1,23 @@
 #include "robot.h"
 
 robot::robot() {
+    // Initialize variables
     _dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
-    _video.open(0);
+
+    // Initialize states and targets
+    _currentState = STATE::FIND_T1;
+    _targetID = ARUCOIDS::TARGET1;
+
+    // Initialize Canvas
+    //_canvas = cv::Mat::zeros(cv::Size(600,300), CV_8UC3);
+    //cv::imshow("RGB", _canvas);
+
+    // Initialize pigpio
     robot::initPigpio();
-
-    _currentState = STATE::FIND_T1; // inital state
-    _targetID = ARUCOIDS::TARGET1; // inital target
-
-    _canvas = cv::Mat::zeros(cv::Size(1,1), CV_8UC3); // initialize canvas
-    cv::imshow("RGB", _canvas); // initialize image
+    gpioServo(PINS::SERVO, SERVOENUM::POS_MIDDLE);
+    gpioSetMode(PINS::LED, PI_OUTPUT);
+    gpioSetMode(PINS::BUTTON, PI_INPUT);
+    gpioSetPullUpDown(PINS::BUTTON, PI_PUD_UP); // pullup resistor on button
 }
 
 robot::~robot() {
@@ -32,7 +40,11 @@ void robot::runLoop() {
 
     //run through each state until it is finished
     do {
-
+        if (gpioRead(PINS::BUTTON)) thread_exit = true;
+        if (thread_exit == true) break;
+        static auto localpos = _centre;
+        if (localpos != _centre) aimCannon();
+        localpos = _centre;
     } while (_currentState == STATE::FIND_T1);
     std::cout << "STATE " << _currentState << " FINISHED" << std::endl;
 
@@ -40,6 +52,9 @@ void robot::runLoop() {
 }
 
 void robot::videoFeed() {
+    std::cout << "attempting video open\n";
+    _video.open(0);
+    if (_video.isOpened()) std::cout << "video opened\n";
     if (_video.isOpened()) {
         do {
             _video >> _canvas;
@@ -58,14 +73,20 @@ void robot::videoFeed() {
                         // store location of centre of ARUCO of interest
                         if (ids.at(i) == _targetID) {
                             _centre = centre;
+                            std::cout << "centre of aruco: " << _centre << " With ID: " << ids.at(i) << std::endl;
                         }
                     }
                 }
+            } else {
+                std::cerr << "Cavnas Empty!" << std::endl;
             }
             cv::line(_canvas, cv::Point(SCREEN_X/2, 0), cv::Point(SCREEN_X/2, SCREEN_Y), cv::Scalar(0,0,255));
             cv::line(_canvas, cv::Point(0, SCREEN_Y/2), cv::Point(SCREEN_X, SCREEN_Y/2), cv::Scalar(0,0,255));
             cv::imshow("RGB", _canvas);
         } while (thread_exit == false);
+    } else {
+        std::cerr << "Video Feed not defined!" << std::endl;
+        thread_exit = true;
     }
 }
 
@@ -94,8 +115,10 @@ bool robot::aimCannon() {
     } else {
         if (_centre.x > SCREEN_X/2) {
             std::cout << "TURNING RIGHT" << std::endl;
+            gpioServo(PINS::SERVO, SERVOENUM::POS_RIGHT);
         } else if (_centre.x < SCREEN_X/2) {
             std::cout << "TURNING LEFT" << std::endl;
+            gpioServo(PINS::SERVO, SERVOENUM::POS_LEFT);
         }
     }
 }
