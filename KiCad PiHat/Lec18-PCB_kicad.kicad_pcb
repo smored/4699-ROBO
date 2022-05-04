@@ -49,7 +49,7 @@
     (aux_axis_origin 200 150)
     (grid_origin -22 51)
     (pcbplotparams
-      (layerselection 0x00010e0_ffffffff)
+      (layerselection 0x00010f0_ffffffff)
       (disableapertmacros false)
       (usegerberextensions true)
       (usegerberattributes false)
@@ -79,7 +79,7 @@
       (mirror false)
       (drillshape 0)
       (scaleselection 1)
-      (outputdirectory "C:/Dropbox/BCIT/4618/Lec/Lec18-PCB_kicad/PiHat/Gerber Files")
+      (outputdirectory "GerberFiles/")
     )
   )
 
@@ -1006,12 +1006,12 @@
     (tedit 0) (tstamp a4a499b6-4446-41b3-973a-00677362cfd8)
     (at 147 73 90)
     (attr board_only exclude_from_pos_files exclude_from_bom)
-    (fp_text reference "Logo" (at -2 17 90) (layer "F.SilkS") hide
-      (effects (font (size 1.524 1.524) (thickness 0.3)))
+    (fp_text reference "Logo" (at -2 17 90) (layer "B.SilkS") hide
+      (effects (font (size 1.524 1.524) (thickness 0.3)) (justify mirror))
       (tstamp 72958308-b33f-4663-855f-75de3c773df5)
     )
-    (fp_text value "LOGO" (at -2 14 90) (layer "F.SilkS") hide
-      (effects (font (size 1.524 1.524) (thickness 0.3)))
+    (fp_text value "LOGO" (at -2 14 90) (layer "B.SilkS") hide
+      (effects (font (size 1.524 1.524) (thickness 0.3)) (justify mirror))
       (tstamp 3a14a347-4659-45f7-9868-d46f0e73b04c)
     )
     (fp_poly (pts
