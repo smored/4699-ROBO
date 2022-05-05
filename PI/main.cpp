@@ -7,7 +7,6 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
-
     robot robotRun = robot();
     robotRun.runLoop();
 

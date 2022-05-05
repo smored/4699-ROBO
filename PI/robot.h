@@ -6,9 +6,11 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 
-#define SERVO_CHANNEL -1
 #define SCREEN_X 640
-#define SCREEN_Y 640
+#define SCREEN_Y 360
+
+//TX 8 (pi to teensy)
+//RX 10 (teensy to pi)
 
 enum ARUCOIDS {
     TARGET1 = 21,
@@ -31,15 +33,27 @@ enum STATE {
 
 enum PINS {
  BUTTON = 23,
- LED = 8,
- SERVO = 20
+ LED = 21,
+ SERVO = 20,
+ TX = 8,
+ RX = 10
 };
 
 enum SERVOENUM {
  POS_MIDDLE = 1500,
  POS_LEFT = 2500,
  POS_RIGHT = 500,
- WAIT_TIME = 650
+ // how much to move the servo by every tick
+ SPEED =  10,
+ // how long each tick should take in ms
+ DELAY = 50
+
+ // mapping scale factor of 7.4x + 500
+ // i.e 90 degrees is 90*7.4 + 500
+ // = 1166
+ //NORTH = 1200,
+ //EAST = 500,
+ //WEST = 1800
  };
 
 
@@ -85,10 +99,13 @@ public:
     void txData();
 
     // aims servo at ARUCO
-    bool aimCannon();
+    void aimCannon();
 
     // runs a loop checking for when to exit program
     void exitLoop();
+
+    // sets centre member to default
+    void centreDefault() {_centre = cv::Point(SCREEN_X/2, SCREEN_Y/2);}
 
 
 };
