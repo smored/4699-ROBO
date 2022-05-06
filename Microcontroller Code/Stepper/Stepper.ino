@@ -18,8 +18,8 @@ mode bigMode = MANUAL;
 automaticMode autoMode = startWait;
 
 // initialize the stepper library on pins 8 through 11:
-Stepper myStepperLeft(stepsPerRevolution, 8, 9, 10, 11);
-Stepper myStepperRight(stepsPerRevolution, 4, 5, 6, 7);
+Stepper myStepperLeft(stepsPerRevolution, 6, 7, 8, 9);
+Stepper myStepperRight(stepsPerRevolution, 2, 3, 4, 5);
 
 void setup() {
   // set the initial speed at 20 rpm:
@@ -107,7 +107,7 @@ void loop() {
       break;
     case MANUAL:
     //State Machine (Manual)
-      drive(2000, 500, 40);
+      drive(2000, 2000, 40);
       delay(5000);
       break;
     default:
