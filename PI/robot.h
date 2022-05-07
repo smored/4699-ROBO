@@ -5,6 +5,7 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
+#include "PID.h"
 
 #define SCREEN_X 640
 #define SCREEN_Y 360
@@ -74,7 +75,9 @@ private:
     int _currentState = NULL_STATE; ///< int holding the current state the system is in
     int _targetID = NULL_STATE; ///< int holding the current target being looked for
     int _setPos = 90; ///< servo's destination position
-    bool thread_exit = false;
+    bool thread_exit = false; ///< condition to exit all threads
+    bool _tracking = false; ///< whether or not the system is currently tracking
+    PIDController controller; ///< Main component of PID
 public:
 
     // default constructor

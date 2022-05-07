@@ -62,6 +62,7 @@ void robot::videoFeed() {
                 std::vector<std::vector<cv::Point2f>> corners;
                 cv::aruco::detectMarkers(_canvas, _dictionary, corners, ids);
                 if (ids.size() > 0) {
+                    _tracking = true;
                     cv::aruco::drawDetectedMarkers(_canvas, corners, ids);
 
                     for (int i = 0; i < ids.size(); i++) { // Find centre using rectangle of two points
@@ -76,8 +77,8 @@ void robot::videoFeed() {
                         }
                     }
                 } else {
-                    // if no IDs are found, set centre to default, so servo doesnt run off
-                    centreDefault();
+                    // if no IDs are found, turn off tracking, so servo doesnt run off
+                    _tracking = false;
                 }
             } else {
                 std::cerr << "Cavnas Empty!" << std::endl;
@@ -104,6 +105,8 @@ void robot::initPigpio() {
 
 void robot::aimCannon() {
     while (!thread_exit) {
+        if (!_tracking) continue;
+
         const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(SERVOENUM::DELAY);
         static const auto thresh_L = 40, thresh_R = 60;
         static int servoPos = SERVOENUM::POS_MIDDLE;
