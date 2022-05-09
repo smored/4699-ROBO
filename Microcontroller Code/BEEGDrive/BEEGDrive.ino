@@ -70,8 +70,8 @@ void loop() {
                         input = "";
                         leftMotor.setCurrentPosition(0);
                         rightMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(400);
-                        rightMotor.moveTo(400);
+                        leftMotor.moveTo(500);
+                        rightMotor.moveTo(500);
                     }
                     break;
                 
@@ -95,8 +95,8 @@ void loop() {
                         input = "";
                         leftMotor.setCurrentPosition(0);
                         rightMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(400);
-                        rightMotor.moveTo(400);
+                        leftMotor.moveTo(500);
+                        rightMotor.moveTo(500);
                     }
                     break;
                 //State 3
@@ -116,14 +116,36 @@ void loop() {
                         input = "";
                         leftMotor.setCurrentPosition(0);
                         rightMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(400);
-                        rightMotor.moveTo(400);
+                        leftMotor.moveTo(86);
                     }
                     break;
-                //State 4 (Long Shot)
+                //State 4 
                 case target4:
-                    Serial.print("onwards");
-                    delay(1000);
+                    //Spin 45 degrees and move forward to be in front of the 4th target
+                    readPI(input);
+                    if(input == STOPCMD){
+                        stopDriving();
+                    }
+                    else if(rightMotor.currentPosition() == 0 && leftMotor.currentPosition() == 86){
+                        rightMotor.setCurrentPosition(0);
+                        leftMotor.setCurrentPosition(0);
+                        rightMotor.moveTo(600);
+                        leftMotor.moveTo(600);
+                        delay(500);
+                    }
+                    else if(rightMotor.distanceToGo() != 0 || leftMotor.distanceToGo() != 0){
+                      leftMotor.run();
+                      rightMotor.run();
+                    }
+                    else if(input == TARGET4){
+                        autoMode = finishAUTO;
+                        input = "";
+                        leftMotor.moveTo(86);
+                        rightMotor.moveTo(0);
+                        Serial.print(leftMotor.currentPosition());
+                        Serial.print('\n');
+                    }
+                    
                     //Wait to receive confirmation that Target 4 has been hit
                     //Goes to next state upon receiving the confirmation from PI
                     break;
@@ -134,11 +156,32 @@ void loop() {
                     //Goes to next state upon receiving the confirmation from PI
                     //break;
                 //State 6 (Close Shot)
-                //case finishAUTO:
+                case finishAUTO:
                     //Turn 180 degrees
                     //Drive forward forward_second to area of target 3
                     //Turn to face end zone
                     //Drive forward into end zone
+                    readPI(input);
+                    if(input == STOPCMD){
+                        stopDriving();
+                    }
+                    else if(rightMotor.currentPosition() == 0 && leftMotor.currentPosition() == -86 && leftMotor.distanceToGo() == 0){
+                        delay(500);
+                        rightMotor.setCurrentPosition(0);
+                        leftMotor.setCurrentPosition(0);
+                        rightMotor.moveTo(500);
+                        leftMotor.moveTo(500);
+                    }
+                    else if(leftMotor.distanceToGo() == 0 && rightMotor.currentPosition() == 0){
+                        delay(500);
+                        rightMotor.setCurrentPosition(0);
+                        leftMotor.setCurrentPosition(0);
+                        leftMotor.moveTo(-86);
+                    }
+                    else{
+                      leftMotor.run();
+                      rightMotor.run();
+                    }
                 }
         break;
         
@@ -148,7 +191,7 @@ void loop() {
         //Serial.print("idk man. itll drive or some shit \n");
         //delay(5000);
         readPI(input);
-        if(input == MOVERIGHT){
+        /*if(input == MOVERIGHT){
             rightMotor.setCurrentPosition(0);
             rightMotor.moveTo(5);
         }
@@ -161,7 +204,7 @@ void loop() {
             leftMotor.moveTo(-5);
             rightMotor.setCurrentPosition(0);
             rightMotor.moveTo(-5);
-        }
+        }*/
         break;
     case NONE:
         readPI(input);
@@ -194,7 +237,7 @@ void moveToTarget(movementState &state){
           if(leftMotor.distanceToGo() == 0 && rightMotor.distanceToGo() == 0){
               leftMotor.setCurrentPosition(0);
               rightMotor.setCurrentPosition(0);
-              leftMotor.moveTo(160);
+              leftMotor.moveTo(173);
               state = turn;
               delay(500);
           }
@@ -207,8 +250,8 @@ void moveToTarget(movementState &state){
               if(leftMotor.distanceToGo() == 0 && rightMotor.distanceToGo() == 0){
                   leftMotor.setCurrentPosition(0);
                   rightMotor.setCurrentPosition(0);
-                  leftMotor.moveTo(400);
-                  rightMotor.moveTo(400);
+                  leftMotor.moveTo(300);
+                  rightMotor.moveTo(300);
                   state = forward_second;
                   delay(500);
              }
@@ -234,5 +277,7 @@ void stopDriving(){
     input = "";
     leftMotor.setCurrentPosition(0);
     rightMotor.setCurrentPosition(0);
+    leftMotor.moveTo(0);
+    rightMotor.moveTo(0);
     autoMode = startWait;
 }
