@@ -11,6 +11,7 @@
 #define SCREEN_X 640
 #define SCREEN_Y 480
 #define IM_PORT 4699
+#define TARGETTHRESH 10
 
 //TX 8 (pi to teensy)
 //RX 10 (teensy to pi)
@@ -37,6 +38,8 @@ enum STATE {
 enum PINS {
      BUTTON = 23,
      LED = 21,
+     TURRET = 20,
+     LAUNCHER = 22
 };
 
 
@@ -58,7 +61,8 @@ private:
     int _targetID = NULL_STATE; ///< int holding the current target being looked for
     bool thread_exit = false; ///< condition to exit all threads
     bool _tracking = false; ///< whether or not the system is currently tracking
-    CServo cservo = CServo(); ///< servo object
+    CServo turretServo = CServo(PINS::TURRET); ///< servo object for turret
+    CServo launcherServo = CServo(PINS::LAUNCHER); ///< servo object for launcher
     bool manual = false; ///< bool determining manual or automatic mode
     Server server; ///< Server object
     std::mutex serverMutex;
@@ -84,17 +88,13 @@ public:
     */
     void initPigpio();
 
-    /** @brief tells servo to go to a certain position
-    */
-    void setServo();
-
-    /** @brief transmits out data to the secondary processor for driving
-    */
-    void txData();
-
     /** @brief aims servo at ARUCO
     */
     void aimCannon();
+
+    /** @brief fires the cannon
+    */
+    void fireCannon();
 
     /** @brief runs a loop checking for when to exit program
     */
@@ -113,7 +113,7 @@ public:
 
     /** @brief sets the output calculated by the PID object
     */
-    void setOut(int out) {cservo.setSpeed(out);}
+    //void setOut(int out) {cservo.setSpeed(out);}
 
     /** @brief gets thread exit status
     */

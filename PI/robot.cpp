@@ -86,9 +86,7 @@ void robot::videoFeed() {
 
                         // store location of centre of ARUCO of interest
                         if (ids.at(i) == _targetID) {
-                            serverMutex.lock();
                             _centre = centre;
-                            serverMutex.unlock();
                             //std::cout << "centre of aruco: " << _centre << " With ID: " << ids.at(i) << std::endl;
                         }
                     }
@@ -101,7 +99,12 @@ void robot::videoFeed() {
             }
             cv::line(_canvas, cv::Point(SCREEN_X/2, 0), cv::Point(SCREEN_X/2, SCREEN_Y), cv::Scalar(0,0,255));
             cv::line(_canvas, cv::Point(0, SCREEN_Y/2), cv::Point(SCREEN_X, SCREEN_Y/2), cv::Scalar(0,0,255));
+
+            cv::line(_canvas, cv::Point(0, SCREEN_Y*(50+TARGETTHRESH)/100), cv::Point(SCREEN_X, SCREEN_Y*(50+TARGETTHRESH)/100), cv::Scalar(0,255,0));
+            cv::line(_canvas, cv::Point(0, SCREEN_Y*(50-TARGETTHRESH)/100), cv::Point(SCREEN_X, SCREEN_Y*(50-TARGETTHRESH)/100), cv::Scalar(0,255,0));
+
             cv::imshow("RGB", _canvas);
+            if (thread_exit) break;
         } while (cv::waitKey(10) != 'q');
     } else {
         std::cerr << "Video Feed not defined!" << std::endl;
@@ -125,30 +128,34 @@ void robot::aimCannon() {
 
         try {
 
-        const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(cservo.getDelay());
-        static const auto thresh_L = 40, thresh_R = 60;
-        serverMutex.lock();
+        static bool firing = false;
+        const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(turretServo.getDelay());
+        static const auto thresh_L = 50 - TARGETTHRESH, thresh_R = 50 + TARGETTHRESH;
         int centrey = _centre.y;
-        serverMutex.unlock();
         double percentageY = ((double) centrey/(double)SCREEN_Y)*100;
         std::cout << "CENTRE Y: " << centrey << std::endl;
         std::cout << "PERCENTAGE Y: " << percentageY << std::endl;
 
         // if within thresholds, fire, otherwise turn to match
         if (percentageY < thresh_R && percentageY > thresh_L) {
-            std::cout << "FIRING!" << std::endl;
+            if (!firing) { // make sure two threads can never fire simultaneously
+                firing = true;
+                std::cout << "FIRING!" << std::endl;
+                fireCannon();
+                firing = false;
+            }
+
         } else {
             if (percentageY > thresh_R) {
                 std::cout << "TURNING LEFT" << std::endl;
-                cservo.add(true);
+                turretServo.add(true);
             } else if (percentageY < thresh_L) {
                 std::cout << "TURNING RIGHT" << std::endl;
-                cservo.add(false);
+                turretServo.add(false);
             }
         }
 
-        cservo.moveServo();
-        //std::cout << "ServoPos: " << servoPos << std::endl;
+        turretServo.moveServo();
         std::this_thread::sleep_until(awaketime);
         } catch (std::exception e) {
             std::cerr << "aimCannon() exception at: " << e.what() << std::endl;
@@ -156,6 +163,13 @@ void robot::aimCannon() {
     }
 }
 
+void robot::fireCannon() {
+    launcherServo.setPos(2500);
+    launcherServo.moveServo();
+    //std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    launcherServo.setPos(500);
+    launcherServo.moveServo();
+}
 
 void robot::serverReceive() {
 	std::vector<std::string> cmds;
@@ -165,7 +179,7 @@ void robot::serverReceive() {
 		if (cmds.size() > 0) {
 			for (int i = 0; i < cmds.size(); i++) {
                 std::string command = cmds.at(i);
-                if (command == "im") continue; // ignore im commands here
+                if (command == "im") continue; // ignore im here; is handled start()
                 // do something with the command
                 std::cout << "server command at index: " << std::to_string(i) << " : " << cmds.at(i) << std::endl;
                 std::string reply = cmds.at(i) + " Received";
@@ -175,18 +189,13 @@ void robot::serverReceive() {
 	} while (!thread_exit);
 }
 
+
 void robot::serverSendIm() {
-	if (_video.isOpened()) {
-		do {
-			if (!_canvas.empty()) {
-				// process message??
-				serverMutex.lock();
-				server.set_txim(_canvas);
-				serverMutex.unlock();
-			}
-		}
-		while (!thread_exit);
-	}
+    do {
+        // process message??
+        server.set_txim(_canvas);
+    }
+    while (!thread_exit);
 }
 
 void robot::serverThread() {

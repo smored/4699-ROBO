@@ -2,7 +2,9 @@
 #include <pigpio.h>
 #include <iostream>
 
-#define SERVOPIN 20
+#define DEFAULT_SPEED 10
+#define DEFAULT_DELAY 50
+#define DEFAULT_POS 2500
 
 /** CServo.h
  *
@@ -14,13 +16,20 @@
  */
 class CServo {
 private:
-    int _pos = left; ///<
+    int _gpioPin;
+    int _pos;
     int _speed;
     int _delay;
 public:
 
     // Default constructor
-    CServo() {_pos = left; _speed = 10; _delay = 50;}
+    CServo(int gpio, int speed = DEFAULT_SPEED, int delay = DEFAULT_DELAY, int startpos = DEFAULT_POS) {
+        _gpioPin = gpio;
+        _pos = startpos;
+        _speed = speed;
+        _delay = delay;
+      }
+
     ~CServo() {;}
 
     const int middle = 1500; ///< middle position of servo
@@ -61,11 +70,20 @@ public:
     }
 
     /**
+    * @brief Method used for setting the servo position absolutely. Call moveServo() to update head position
+    */
+    void setPos(int pos) {
+        if (pos > left) pos = left;
+        if (pos < right) pos = right;
+        this->_pos = pos;
+    }
+
+    /**
     * @brief Updates the position of the servo head
     */
     void moveServo() {
         try {
-            gpioServo(SERVOPIN, _pos);
+            gpioServo(_gpioPin, _pos);
         } catch (std::exception e) {
             std::cerr << "moveServo() exception at: " << e.what() << std::endl;
         }
