@@ -20,7 +20,7 @@ class Server
 private:
   bool _server_exit;
   cv::Mat _txim;
-  
+
   std::mutex _image_mutex;
   std::mutex _rx_mutex;
   std::mutex _tx_mutex;
@@ -29,7 +29,7 @@ private:
 
 public:
   Server();
-	~Server();
+ ~Server();
 
   // Start server listening (probably best to do in a separate thread)
   void start(int port);
