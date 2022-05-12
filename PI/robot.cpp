@@ -1,9 +1,14 @@
 #include "robot.h"
+#include "cvui.h"
 
 robot::robot() {
     // Initialize variables
     _dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     centreDefault();
+    _statemap[FIND_T1] = "ONE";
+    _statemap[FIND_T2] = "TWO";
+    _statemap[FIND_T3] = "THREE";
+    _statemap[FIND_T4] = "FOUR";
 
     // Initialize states and targets
     _currentState = STATE::FIND_T1;
@@ -14,7 +19,28 @@ robot::robot() {
     gpioSetMode(PINS::LED, PI_OUTPUT);
     gpioSetMode(PINS::BUTTON, PI_INPUT);
     gpioSetPullUpDown(PINS::BUTTON, PI_PUD_UP); // pullup resistor on button
+    _turretServo.resetServo();
+    _launcherServo.resetServo();
 
+    // Open Serial device
+    initSerial();
+
+    // Make settings window
+    const cv::Size canvasSize = cv::Size(300*16/9, 300);
+    _settings = cv::Mat::zeros(canvasSize, CV_8UC3);
+    cv::imshow("SETTINGS", _settings);
+    cvui::init("SETTINGS");
+}
+
+robot::~robot() {
+    serClose(_serialHandle);
+    _server.stop();
+    _video.release();
+    cv::destroyAllWindows();
+    gpioTerminate();
+}
+
+void robot::runLoop() {
     // Start robot threads
     std::thread t1(&robot::videoFeed, this);
     t1.detach();
@@ -28,35 +54,26 @@ robot::robot() {
     t4.detach();
     std::thread t5(&robot::serverThread, this); // run the server thread
     t5.detach();
-}
 
-robot::~robot() {
-    server.stop();
-    _video.release();
-    cv::destroyAllWindows();
-    gpioTerminate();
-}
-
-void robot::runLoop() {
+    // Start ui thread
+    std::thread t6(&robot::uiElements, this);
+    t6.detach();
 
     // Only care about states in auto mode
-    if (!manual) {
-        // check if state is valid and set
-        if (_currentState == STATE::NULL_STATE) {
-            std::cerr << "[E]: State undefined" << std::endl;
-            return;
-        }
-        //run through each state until it is finished
+    if (!_manual) {
         do {
-            if (!gpioRead(PINS::BUTTON)) thread_exit = true;
-            if (thread_exit == true) break;
+            // check if state is valid and set
+            if (_currentState == STATE::NULL_STATE) {
+                std::cerr << "[E]: State undefined" << std::endl;
+                return;
+            }
 
-            // update pid loop
-          //  PIDController::tick();
-        } while (1);
-        std::cout << "STATE " << _currentState << " FINISHED" << std::endl;
-
-        _currentState++;
+            //run through each state until it is finished
+            auto lastState = _currentState;
+            while(_currentState == lastState) {;}
+            std::cout << "STATE " << lastState << " FINISHED" << std::endl;
+            sendString(_statemap.at(lastState), 1000); // 1000 ms of timeout time
+        } while (!_thread_exit);
     }
 }
 
@@ -69,8 +86,11 @@ void robot::videoFeed() {
     }
     if (_video.isOpened()) {
         std::cout << "video opened\n";
+        cv::Mat canvas; // temporary canvas buffer for flipping image
         do {
-            _video >> _canvas;
+            _video >> canvas;
+            cv::flip(canvas, _canvas, -1);
+            //_canvas = canvas;
             if (!_canvas.empty()) {
                 std::vector<int> ids;
                 std::vector<std::vector<cv::Point2f>> corners;
@@ -100,16 +120,16 @@ void robot::videoFeed() {
             cv::line(_canvas, cv::Point(SCREEN_X/2, 0), cv::Point(SCREEN_X/2, SCREEN_Y), cv::Scalar(0,0,255));
             cv::line(_canvas, cv::Point(0, SCREEN_Y/2), cv::Point(SCREEN_X, SCREEN_Y/2), cv::Scalar(0,0,255));
 
-            cv::line(_canvas, cv::Point(0, SCREEN_Y*(50+TARGETTHRESH)/100), cv::Point(SCREEN_X, SCREEN_Y*(50+TARGETTHRESH)/100), cv::Scalar(0,255,0));
-            cv::line(_canvas, cv::Point(0, SCREEN_Y*(50-TARGETTHRESH)/100), cv::Point(SCREEN_X, SCREEN_Y*(50-TARGETTHRESH)/100), cv::Scalar(0,255,0));
+            cv::line(_canvas, cv::Point(SCREEN_X*(50+_targetThresh)/100, 0), cv::Point(SCREEN_X*(50+_targetThresh)/100, SCREEN_Y), cv::Scalar(0,255,0));
+            cv::line(_canvas, cv::Point(SCREEN_X*(50-_targetThresh)/100, 0), cv::Point(SCREEN_X*(50-_targetThresh)/100, SCREEN_Y), cv::Scalar(0,255,0));
 
             cv::imshow("RGB", _canvas);
-            if (thread_exit) break;
+            if (_thread_exit) break;
         } while (cv::waitKey(10) != 'q');
     } else {
         std::cerr << "Video Feed not defined!" << std::endl;
-        thread_exit = true;
     }
+    _thread_exit = true;
 }
 
 void robot::initPigpio() {
@@ -122,17 +142,27 @@ void robot::initPigpio() {
     }
 }
 
+void robot::initSerial() {
+    std::cout << "Initializing Serial..." << std::endl;
+    _serialHandle = serOpen(UART_ADDR, BAUD_RATE, 0);
+    if (_serialHandle > 0) {
+        std::cout << "Serial Successfully Initialized" << std::endl;
+    } else {
+        std::cout << "Failure to Initialize Serial" << std::endl;
+    }
+}
+
 void robot::aimCannon() {
-    while (!thread_exit) {
+    while (!_thread_exit) {
         if (!_tracking) continue;
 
         try {
 
         static bool firing = false;
-        const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(turretServo.getDelay());
-        static const auto thresh_L = 50 - TARGETTHRESH, thresh_R = 50 + TARGETTHRESH;
-        int centrey = _centre.y;
-        double percentageY = ((double) centrey/(double)SCREEN_Y)*100;
+        const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(_turretServo.getDelay());
+        const auto thresh_L = 50 - _targetThresh, thresh_R = 50 + _targetThresh;
+        int centrey = _centre.x;
+        double percentageY = ((double) centrey/(double)SCREEN_X)*100;
         std::cout << "CENTRE Y: " << centrey << std::endl;
         std::cout << "PERCENTAGE Y: " << percentageY << std::endl;
 
@@ -144,18 +174,17 @@ void robot::aimCannon() {
                 fireCannon();
                 firing = false;
             }
-
         } else {
             if (percentageY > thresh_R) {
-                std::cout << "TURNING LEFT" << std::endl;
-                turretServo.add(true);
-            } else if (percentageY < thresh_L) {
                 std::cout << "TURNING RIGHT" << std::endl;
-                turretServo.add(false);
+                _turretServo.add(false);
+            } else if (percentageY < thresh_L) {
+                std::cout << "TURNING LEFT" << std::endl;
+                _turretServo.add(true);
             }
         }
 
-        turretServo.moveServo();
+        _turretServo.moveServo();
         std::this_thread::sleep_until(awaketime);
         } catch (std::exception e) {
             std::cerr << "aimCannon() exception at: " << e.what() << std::endl;
@@ -164,40 +193,88 @@ void robot::aimCannon() {
 }
 
 void robot::fireCannon() {
-    launcherServo.setPos(2500);
-    launcherServo.moveServo();
-    //std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    launcherServo.setPos(500);
-    launcherServo.moveServo();
+    _launcherServo.setPos(800);
+    _launcherServo.moveServo();
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    _launcherServo.setPos(1500);
+    _launcherServo.moveServo();
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
 
 void robot::serverReceive() {
 	std::vector<std::string> cmds;
 
 	do {
-		server.get_cmd(cmds);
+		_server.get_cmd(cmds);
 		if (cmds.size() > 0) {
 			for (int i = 0; i < cmds.size(); i++) {
                 std::string command = cmds.at(i);
-                if (command == "im") continue; // ignore im here; is handled start()
+                if (command == "im") continue; // ignore im here; is handled by start()
                 // do something with the command
                 std::cout << "server command at index: " << std::to_string(i) << " : " << cmds.at(i) << std::endl;
                 std::string reply = cmds.at(i) + " Received";
-                server.send_string(reply);
+                _server.send_string(reply);
             }
 		}
-	} while (!thread_exit);
+	} while (!_thread_exit);
 }
 
 
 void robot::serverSendIm() {
     do {
         // process message??
-        server.set_txim(_canvas);
+        _server.set_txim(_canvas);
     }
-    while (!thread_exit);
+    while (!_thread_exit);
 }
 
 void robot::serverThread() {
-	server.start(IM_PORT);
+	_server.start(IM_PORT);
+}
+
+void robot::uiElements() {
+    const cv::Size canvasSize = cv::Size(300*16/9, 300);
+    double turretDelay = 50, turretSpeed = 10;
+    do {
+        _settings = cv::Mat::zeros(_settings.size(), CV_8UC3);
+
+        cvui::text(_settings, 20, 20, "Threshold Size");
+        cvui::trackbar(_settings, 0, 40, 200, &_targetThresh, (double) 0, (double) 50);
+
+        cvui::text(_settings, 20, 100, "Turret Delay");
+        cvui::trackbar(_settings, 0, 120, 200, &turretDelay, (double) 0, (double) 200);
+        _turretServo.setDelay(turretDelay);
+
+        cvui::text(_settings, 20, 180, "Turret Speed");
+        cvui::trackbar(_settings, 0, 200, 200, &turretSpeed, (double) 0, (double) 200);
+        _turretServo.setDelay(turretDelay);
+
+        if (cvui::button(_settings, 20, 260, "Manually Increment State")) {
+            _currentState++;
+        }
+
+        cv::imshow("SETTINGS", _settings);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500)); // poll this slower so that other threads can run faster
+    } while(!_thread_exit);
+}
+
+void robot::sendString(std::string input, unsigned int timeoutTime) {
+    auto timeout =  std::chrono::system_clock::now() + std::chrono::milliseconds(timeoutTime);
+    std::cout << "Attempting to send: " << input << std::endl;
+    do {
+        // check if sent ok. serWrite() returns zero if success
+        if (serWrite(_serialHandle, &input[0], input.length())) { // this is dumb but it wants a char*. I hope i did it right
+            std::cout << "Failed to send string over UART; serWrite() returned bad value!" << std::endl;
+            continue;
+        }
+        // then wait for a response to affirm a successfully sent message
+        if (serDataAvailable(_serialHandle) >= 0) {
+            std::cout << "Sent message!" << std::endl;
+            return;
+        }
+    } while (std::chrono::system_clock::now() < timeout);
+
+    // timed out
+    std::cout << "Failed to send string over UART; Timed out!" << std::endl;
+    return;
 }

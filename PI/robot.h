@@ -7,11 +7,13 @@
 #include <opencv2/aruco.hpp>
 #include "CServo.h"
 #include "server.h"
+#include <unordered_map>
 
 #define SCREEN_X 640
 #define SCREEN_Y 480
 #define IM_PORT 4699
-#define TARGETTHRESH 10
+#define UART_ADDR "/dev/ttyAMA0"
+#define BAUD_RATE 9600
 
 //TX 8 (pi to teensy)
 //RX 10 (teensy to pi)
@@ -38,7 +40,7 @@ enum STATE {
 enum PINS {
      BUTTON = 23,
      LED = 21,
-     TURRET = 20,
+     TURRET = 17,
      LAUNCHER = 22
 };
 
@@ -54,18 +56,20 @@ enum PINS {
 class robot {
 private:
     cv::VideoCapture _video; ///< video capture object
-    cv::Mat _canvas; ///< canvas object
+    cv::Mat _canvas, _settings; ///< canvas objects
     cv::Ptr<cv::aruco::Dictionary> _dictionary; ///< dictionary for ArUco IDs
     cv::Point _centre; ///< stores the position of the current ARUCO centre of interest
     int _currentState = NULL_STATE; ///< int holding the current state the system is in
     int _targetID = NULL_STATE; ///< int holding the current target being looked for
-    bool thread_exit = false; ///< condition to exit all threads
+    bool _thread_exit = false; ///< condition to exit all threads
     bool _tracking = false; ///< whether or not the system is currently tracking
-    CServo turretServo = CServo(PINS::TURRET); ///< servo object for turret
-    CServo launcherServo = CServo(PINS::LAUNCHER); ///< servo object for launcher
-    bool manual = false; ///< bool determining manual or automatic mode
-    Server server; ///< Server object
-    std::mutex serverMutex;
+    CServo _turretServo = CServo(PINS::TURRET, 10, 50, 1800); ///< servo object for turret
+    CServo _launcherServo = CServo(PINS::LAUNCHER); ///< servo object for launcher
+    bool _manual = false; ///< bool determining manual or automatic mode
+    Server _server; ///< Server object
+    double _targetThresh = 10;
+    int _serialHandle{};
+    std::unordered_map<int, std::string> _statemap;
 public:
 
     /** @brief default constructor
@@ -87,6 +91,10 @@ public:
     /** @brief starts up the PIGPIO library
     */
     void initPigpio();
+
+    /** @brief starts up the Serial function from PIGPIO
+    */
+    void initSerial();
 
     /** @brief aims servo at ARUCO
     */
@@ -117,7 +125,7 @@ public:
 
     /** @brief gets thread exit status
     */
-    bool getExit() {return this->thread_exit;}
+    bool getExit() {return this->_thread_exit;}
 
     /** @brief gets tracking status
     */
@@ -134,5 +142,15 @@ public:
     /** @brief method to be run by a thread for running the server
     */
     void serverThread();
+
+    /** @brief loop for running cvui elements
+    */
+    void uiElements();
+
+    /** @brief method for attempting sending a string accross UART
+    * @param input: string to send accross uart
+    * @param timout: time in milliseconds for how long to try before timing out
+    */
+    void sendString(std::string input, unsigned int timoutTime);
 
 };

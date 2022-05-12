@@ -1,6 +1,7 @@
 #pragma once
 #include <pigpio.h>
 #include <iostream>
+#include <thread>
 
 #define DEFAULT_SPEED 10
 #define DEFAULT_DELAY 50
@@ -20,12 +21,14 @@ private:
     int _pos;
     int _speed;
     int _delay;
+    //int _lastPos;
 public:
 
     // Default constructor
     CServo(int gpio, int speed = DEFAULT_SPEED, int delay = DEFAULT_DELAY, int startpos = DEFAULT_POS) {
         _gpioPin = gpio;
         _pos = startpos;
+       // _lastPos = _pos;
         _speed = speed;
         _delay = delay;
       }
@@ -71,6 +74,7 @@ public:
 
     /**
     * @brief Method used for setting the servo position absolutely. Call moveServo() to update head position
+    * @param pos: position to move to in milliseconds (500 - 2500)
     */
     void setPos(int pos) {
         if (pos > left) pos = left;
@@ -82,11 +86,12 @@ public:
     * @brief Updates the position of the servo head
     */
     void moveServo() {
-        try {
-            gpioServo(_gpioPin, _pos);
-        } catch (std::exception e) {
-            std::cerr << "moveServo() exception at: " << e.what() << std::endl;
-        }
+        gpioServo(_gpioPin, _pos);
     }
 
+
+    /**
+    * @brief returns the servo to the default position
+    */
+    void resetServo() {_pos = DEFAULT_POS; moveServo(); std::this_thread::sleep_for(std::chrono::milliseconds(500)); }
 };
