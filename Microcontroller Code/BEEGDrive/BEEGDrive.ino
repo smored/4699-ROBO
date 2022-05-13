@@ -46,8 +46,8 @@ void loop() {
                     else if(input == STARTCMD){
                         autoMode = target1;
                         input = "";
-                        leftMotor.moveTo(400);
-                        rightMotor.moveTo(400);
+                        leftMotor.moveTo(420);
+                        rightMotor.moveTo(420);
                         target2State = forward;
                         target3State = forward;
                     }
@@ -70,8 +70,8 @@ void loop() {
                         input = "";
                         leftMotor.setCurrentPosition(0);
                         rightMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(500);
-                        rightMotor.moveTo(500);
+                        leftMotor.moveTo(480);
+                        rightMotor.moveTo(480);
                     }
                     break;
                 
@@ -95,8 +95,8 @@ void loop() {
                         input = "";
                         leftMotor.setCurrentPosition(0);
                         rightMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(500);
-                        rightMotor.moveTo(500);
+                        leftMotor.moveTo(420);
+                        rightMotor.moveTo(420);
                     }
                     break;
                 //State 3
@@ -116,7 +116,7 @@ void loop() {
                         input = "";
                         leftMotor.setCurrentPosition(0);
                         rightMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(86);
+                        leftMotor.moveTo(95);
                     }
                     break;
                 //State 4 
@@ -129,8 +129,8 @@ void loop() {
                     else if(rightMotor.currentPosition() == 0 && leftMotor.currentPosition() == 86){
                         rightMotor.setCurrentPosition(0);
                         leftMotor.setCurrentPosition(0);
-                        rightMotor.moveTo(600);
-                        leftMotor.moveTo(600);
+                        rightMotor.moveTo(500);
+                        leftMotor.moveTo(500);
                         delay(500);
                     }
                     else if(rightMotor.distanceToGo() != 0 || leftMotor.distanceToGo() != 0){
@@ -140,7 +140,7 @@ void loop() {
                     else if(input == TARGET4){
                         autoMode = finishAUTO;
                         input = "";
-                        leftMotor.moveTo(86);
+                        leftMotor.moveTo(0);
                         rightMotor.moveTo(0);
                         Serial.print(leftMotor.currentPosition());
                         Serial.print('\n');
@@ -165,18 +165,18 @@ void loop() {
                     if(input == STOPCMD){
                         stopDriving();
                     }
-                    else if(rightMotor.currentPosition() == 0 && leftMotor.currentPosition() == -86 && leftMotor.distanceToGo() == 0){
+                    else if(rightMotor.currentPosition() == 0 && leftMotor.currentPosition() == -70 && leftMotor.distanceToGo() == 0){
                         delay(500);
                         rightMotor.setCurrentPosition(0);
                         leftMotor.setCurrentPosition(0);
-                        rightMotor.moveTo(500);
-                        leftMotor.moveTo(500);
+                        rightMotor.moveTo(600);
+                        leftMotor.moveTo(600);
                     }
                     else if(leftMotor.distanceToGo() == 0 && rightMotor.currentPosition() == 0){
                         delay(500);
                         rightMotor.setCurrentPosition(0);
                         leftMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(-86);
+                        leftMotor.moveTo(-70);
                     }
                     else{
                       leftMotor.run();
@@ -237,7 +237,7 @@ void moveToTarget(movementState &state){
           if(leftMotor.distanceToGo() == 0 && rightMotor.distanceToGo() == 0){
               leftMotor.setCurrentPosition(0);
               rightMotor.setCurrentPosition(0);
-              leftMotor.moveTo(173);
+              leftMotor.moveTo(185);
               state = turn;
               delay(500);
           }
@@ -250,8 +250,8 @@ void moveToTarget(movementState &state){
               if(leftMotor.distanceToGo() == 0 && rightMotor.distanceToGo() == 0){
                   leftMotor.setCurrentPosition(0);
                   rightMotor.setCurrentPosition(0);
-                  leftMotor.moveTo(300);
-                  rightMotor.moveTo(300);
+                  leftMotor.moveTo(320);
+                  rightMotor.moveTo(320);
                   state = forward_second;
                   delay(500);
              }

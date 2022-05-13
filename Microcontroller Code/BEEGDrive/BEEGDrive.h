@@ -4,10 +4,10 @@
 #define IN2_Right 3
 #define IN3_Right 4
 #define IN4_Right 5
-#define IN1_Left 17
-#define IN2_Left 18
-#define IN3_Left 19
-#define IN4_Left 20
+#define IN1_Left 6
+#define IN2_Left 7
+#define IN3_Left 8
+#define IN4_Left 9
 #define TARGET1   "ONE"
 #define TARGET2   "TWO"
 #define TARGET3   "THREE"
