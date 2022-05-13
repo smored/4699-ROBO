@@ -5,10 +5,18 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
+#include "CServo.h"
+#include "server.h"
+#include <unordered_map>
 
-#define SERVO_CHANNEL -1
 #define SCREEN_X 640
-#define SCREEN_Y 640
+#define SCREEN_Y 480
+#define IM_PORT 4699
+#define UART_ADDR "/dev/ttyAMA0"
+#define BAUD_RATE 9600
+
+//TX 8 (pi to teensy)
+//RX 10 (teensy to pi)
 
 enum ARUCOIDS {
     TARGET1 = 21,
@@ -30,17 +38,11 @@ enum STATE {
 };
 
 enum PINS {
- BUTTON = 23,
- LED = 8,
- SERVO = 20
+     BUTTON = 23,
+     LED = 21,
+     TURRET = 17,
+     LAUNCHER = 22
 };
-
-enum SERVOENUM {
- POS_MIDDLE = 1500,
- POS_LEFT = 2500,
- POS_RIGHT = 500,
- WAIT_TIME = 650
- };
 
 
 /** robot.h
@@ -54,41 +56,101 @@ enum SERVOENUM {
 class robot {
 private:
     cv::VideoCapture _video; ///< video capture object
-    cv::Mat _canvas; ///< canvas object
+    cv::Mat _canvas, _settings; ///< canvas objects
     cv::Ptr<cv::aruco::Dictionary> _dictionary; ///< dictionary for ArUco IDs
     cv::Point _centre; ///< stores the position of the current ARUCO centre of interest
     int _currentState = NULL_STATE; ///< int holding the current state the system is in
     int _targetID = NULL_STATE; ///< int holding the current target being looked for
-    int _setPos = 90; ///< servo's destination position
-    bool thread_exit = false;
+    bool _thread_exit = false; ///< condition to exit all threads
+    bool _tracking = false; ///< whether or not the system is currently tracking
+    CServo _turretServo = CServo(PINS::TURRET, 10, 50, 1800); ///< servo object for turret
+    CServo _launcherServo = CServo(PINS::LAUNCHER); ///< servo object for launcher
+    bool _manual = false; ///< bool determining manual or automatic mode
+    Server _server; ///< Server object
+    double _targetThresh = 10;
+    int _serialHandle{};
+    std::unordered_map<int, std::string> _statemap;
 public:
 
-    // default constructor
+    /** @brief default constructor
+    */
     robot();
 
-    // default destructor
+    /** @brief default destructor
+    */
     ~robot();
 
-     // main run function
+    /** @brief main run function
+    */
     void runLoop();
 
-    // loops camera for video feed
+    /** @brief Method for determining ARUCO IDs it sees and will locate the centre of the ID of interest
+    */
     void videoFeed();
 
-    // starts up the PIGPIO library
+    /** @brief starts up the PIGPIO library
+    */
     void initPigpio();
 
-    // tells servo to go to a certain position
-    void setServo();
+    /** @brief starts up the Serial function from PIGPIO
+    */
+    void initSerial();
 
-    // transmits out data to the secondary processor for driving
-    void txData();
+    /** @brief aims servo at ARUCO
+    */
+    void aimCannon();
 
-    // aims servo at ARUCO
-    bool aimCannon();
+    /** @brief fires the cannon
+    */
+    void fireCannon();
 
-    // runs a loop checking for when to exit program
+    /** @brief runs a loop checking for when to exit program
+    */
     void exitLoop();
 
+    /** @brief sets centre member to default
+    */
+    void centreDefault() { _centre = cv::Point(SCREEN_X/2, SCREEN_Y/2); }
+
+    // getter for milliseconds as int
+    //unsigned long int getMillisAsInt() { unsigned long int millis = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); return millis; }
+
+    /** @brief gets centre of ARUCO
+    */
+    int getCentre() {return this->_centre.y;}
+
+    /** @brief sets the output calculated by the PID object
+    */
+    //void setOut(int out) {cservo.setSpeed(out);}
+
+    /** @brief gets thread exit status
+    */
+    bool getExit() {return this->_thread_exit;}
+
+    /** @brief gets tracking status
+    */
+    bool getTracking() {return this->_tracking;}
+
+    /** @brief method to be run by a thread for receieving commands
+    */
+    void serverReceive();
+
+    /** @brief method to be run by a thread for sending images
+    */
+    void serverSendIm();
+
+    /** @brief method to be run by a thread for running the server
+    */
+    void serverThread();
+
+    /** @brief loop for running cvui elements
+    */
+    void uiElements();
+
+    /** @brief method for attempting sending a string accross UART
+    * @param input: string to send accross uart
+    * @param timout: time in milliseconds for how long to try before timing out
+    */
+    void sendString(std::string input, unsigned int timoutTime);
 
 };
