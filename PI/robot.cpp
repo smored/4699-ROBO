@@ -5,13 +5,18 @@ robot::robot() {
     // Initialize variables
     _dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     centreDefault();
-    _statemap[FIND_T1] = "ONE";
-    _statemap[FIND_T2] = "TWO";
-    _statemap[FIND_T3] = "THREE";
-    _statemap[FIND_T4] = "FOUR";
+    //_statemap[FIND_T1] = "START";
+    _statemap[FIND_T2] = "ONE";
+    _statemap[FIND_T3] = "TWO";
+    _statemap[FIND_T4] = "THREE";
+    _statemap[DONE] =    "FOUR";
+    _targetmap[FIND_T1] = TARGET1; // based on the commands sent from client
+    _targetmap[FIND_T2] = TARGET2; // 0 = stop, 1 = find target 1, 2 = find target 2, etc. 5 = done
+    _targetmap[FIND_T3] = TARGET3;
+    _targetmap[FIND_T4] = TARGET4;
 
     // Initialize states and targets
-    _currentState = STATE::FIND_T1;
+    _currentState = STATE::NULL_STATE;
     _targetID = ARUCOIDS::TARGET1;
 
     // Initialize pigpio
@@ -50,8 +55,8 @@ void robot::runLoop() {
     // Start server threads
     std::thread t3(&robot::serverReceive, this); // receive commands from client
     t3.detach();
-    std::thread t4(&robot::serverSendIm, this); // send images repeatedly to client
-    t4.detach();
+    //std::thread t4(&robot::serverSendIm, this); // send images repeatedly to client
+    //t4.detach();
     std::thread t5(&robot::serverThread, this); // run the server thread
     t5.detach();
 
@@ -61,19 +66,27 @@ void robot::runLoop() {
 
     // Only care about states in auto mode
     if (!_manual) {
+        sendString("AUTO");
+        bool running = false;
         do {
             // check if state is valid and set
             if (_currentState == STATE::NULL_STATE) {
-                std::cerr << "[E]: State undefined" << std::endl;
-                return;
+                std::cerr << "Waiting in null state" << std::endl;
+                continue;
+            } else if (!running) {
+                std::cout << "Starting..." << std::endl;
+                sendString("START");
+                running = true;
             }
 
             //run through each state until it is finished
             auto lastState = _currentState;
             while(_currentState == lastState) {;}
-            std::cout << "STATE " << lastState << " FINISHED" << std::endl;
-            sendString(_statemap.at(lastState), 1000); // 1000 ms of timeout time
-        } while (!_thread_exit);
+            std::cout << "STATE " << lastState << " FINISHED, STARTING STATE " << _currentState << std::endl;
+            _targetID = _targetmap.at(_currentState);
+            sendString(_statemap.at(_currentState));
+        } while (!_thread_exit || _currentState > STATE::DONE);
+        _thread_exit = true;
     }
 }
 
@@ -211,9 +224,10 @@ void robot::serverReceive() {
                 std::string command = cmds.at(i);
                 if (command == "im") continue; // ignore im here; is handled by start()
                 // do something with the command
+                _currentState = std::stoi(cmds.at(i));
                 std::cout << "server command at index: " << std::to_string(i) << " : " << cmds.at(i) << std::endl;
-                std::string reply = cmds.at(i) + " Received";
-                _server.send_string(reply);
+                //std::string reply = cmds.at(i) + " Received";
+                //_server.send_string(reply);
             }
 		}
 	} while (!_thread_exit);
@@ -224,6 +238,7 @@ void robot::serverSendIm() {
     do {
         // process message??
         _server.set_txim(_canvas);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
     while (!_thread_exit);
 }
@@ -258,23 +273,6 @@ void robot::uiElements() {
     } while(!_thread_exit);
 }
 
-void robot::sendString(std::string input, unsigned int timeoutTime) {
-    auto timeout =  std::chrono::system_clock::now() + std::chrono::milliseconds(timeoutTime);
-    std::cout << "Attempting to send: " << input << std::endl;
-    do {
-        // check if sent ok. serWrite() returns zero if success
-        if (serWrite(_serialHandle, &input[0], input.length())) { // this is dumb but it wants a char*. I hope i did it right
-            std::cout << "Failed to send string over UART; serWrite() returned bad value!" << std::endl;
-            continue;
-        }
-        // then wait for a response to affirm a successfully sent message
-        if (serDataAvailable(_serialHandle) >= 0) {
-            std::cout << "Sent message!" << std::endl;
-            return;
-        }
-    } while (std::chrono::system_clock::now() < timeout);
-
-    // timed out
-    std::cout << "Failed to send string over UART; Timed out!" << std::endl;
-    return;
+void robot::sendString(std::string input) {
+    serWrite(_serialHandle, &input[0], input.length());
 }

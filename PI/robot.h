@@ -11,8 +11,8 @@
 
 #define SCREEN_X 640
 #define SCREEN_Y 480
-#define IM_PORT 4699
-#define UART_ADDR "/dev/ttyAMA0"
+#define IM_PORT 54420
+#define UART_ADDR "/dev/serial0"
 #define BAUD_RATE 9600
 
 //TX 8 (pi to teensy)
@@ -34,7 +34,8 @@ enum STATE {
     FIND_T1,
     FIND_T2,
     FIND_T3,
-    FIND_T4
+    FIND_T4,
+    DONE
 };
 
 enum PINS {
@@ -70,6 +71,7 @@ private:
     double _targetThresh = 10;
     int _serialHandle{};
     std::unordered_map<int, std::string> _statemap;
+    std::unordered_map<int, int> _targetmap;
 public:
 
     /** @brief default constructor
@@ -151,6 +153,6 @@ public:
     * @param input: string to send accross uart
     * @param timout: time in milliseconds for how long to try before timing out
     */
-    void sendString(std::string input, unsigned int timoutTime);
+    void sendString(std::string input);
 
 };
