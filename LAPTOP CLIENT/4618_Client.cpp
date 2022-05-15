@@ -14,6 +14,8 @@
 CClient craigClient;
 CClient piClient;
 
+void send_command(CClient& client, std::string cmd);
+
 void print_menu()
 {
 	std::cout << "\n***********************************";
@@ -21,11 +23,43 @@ void print_menu()
 	std::cout << "\n***********************************";
 	std::cout << "\n(1) Get current state";
 	std::cout << "\n(2) Send get image command";
-	std::cout << "\n(0) Exit";
+	std::cout << "\n(3) TEST";
+	std::cout << "\n(X) Exit";
 	std::cout << "\nCMD> ";
 }
 
-/*
+void test_menu()
+{
+	int cmd = -1;
+	do
+	{
+		std::cout << "\n***********************************";
+		std::cout << "\n* TEST Menu";
+		std::cout << "\n***********************************";
+		std::cout << "\n(7) AUTO";
+		std::cout << "\n(1) START";
+		std::cout << "\n(2) ONE";
+		std::cout << "\n(3) TWO";
+		std::cout << "\n(4) THREE";
+		std::cout << "\n(5) FOUR";
+		std::cout << "\n(0) STOP";
+		std::cout << "\n(X) Exit";
+		std::cout << "\nCMD> ";
+		std::cin >> cmd;
+		switch (cmd)
+		{
+			case 7: send_command(piClient, "7"); break;
+			case 0: send_command(piClient, "0"); break;
+			case 1: send_command(piClient, "1"); break;
+			case 2: send_command(piClient, "2"); break;
+			case 3: send_command(piClient, "3"); break;
+			case 4: send_command(piClient, "4"); break;
+			case 5: send_command(piClient, "5"); break;
+		}
+	} while (cmd != 'X');
+}
+
+
 void send_command(CClient &client, std::string cmd)
 {
 	std::string str;
@@ -33,7 +67,7 @@ void send_command(CClient &client, std::string cmd)
 	client.tx_str(cmd);
 	std::cout << "\nClient Tx: " << cmd;
 
-	if (cmd == "G 1")
+	/*if (cmd == "G 1")
 	{
 		cv::Mat im;
 		if (client.rx_im(im) == true)
@@ -49,7 +83,7 @@ void send_command(CClient &client, std::string cmd)
 		{
 			// No response, disconnect and reconnect
 			client.close_socket();
-			client.connect_socket(server_ip, server_port);
+			client.connect_socket("192.168.1.3", 69420);
 		}
 	}
 	else
@@ -62,11 +96,11 @@ void send_command(CClient &client, std::string cmd)
 		{
 			// No response, disconnect and reconnect
 			client.close_socket();
-			client.connect_socket(server_ip, server_port);
+			client.connect_socket("192.168.1.3", 69420);
 		}
-	}
+	}*/
 }
-*/
+
 
 void getTopDown() {
 	cv::Mat im;
@@ -118,13 +152,27 @@ void getPiFeed() {
 
 int main(int argc, char* argv[])
 {
-	craigClient.connect_socket("192.168.1.100", 46991);
+	/*craigClient.connect_socket("192.168.1.100", 46991);
 	std::thread t1(&getTopDown);
-	t1.detach();
+	t1.detach();*/
 
-	piClient.connect_socket("192.168.1.3", 69420);
-	std::thread t2(&getPiFeed);
+	piClient.connect_socket("192.168.1.3", 54420);
+	/*std::thread t2(&getPiFeed);
 	t2.detach();
 
-	while (1);
+	while (1);*/
+
+	int cmd = -1;
+	do
+	{
+		print_menu();
+		std::cin >> cmd;
+		switch (cmd)
+		{
+		//case 1: test_com(); break;
+		//case 2: do_image(); break;
+		case 3: test_menu(); break;
+		//case 4: do_clientserver(); break;
+		}
+	} while (cmd != 'X');
 }
