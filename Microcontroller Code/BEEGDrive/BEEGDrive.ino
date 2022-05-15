@@ -25,7 +25,9 @@ void setup() {
     rightMotor.setPinsInverted(true, true, false);
     // initialize the serial port:
     Serial.begin(9600);
+    Serial1.begin(9600);
     bigMode = NONE;
+    pinMode(2, INPUT);
 }
 
 void loop() {
@@ -142,8 +144,6 @@ void loop() {
                         input = "";
                         leftMotor.moveTo(0);
                         rightMotor.moveTo(0);
-                        Serial.print(leftMotor.currentPosition());
-                        Serial.print('\n');
                     }
                     
                     //Wait to receive confirmation that Target 4 has been hit
@@ -223,11 +223,11 @@ void loop() {
 }
 
 void readPI(String &input){
-    if (Serial.available() > 0){
-        input = Serial.readStringUntil('\n');
-        Serial.print("you sent: ");
+    if (Serial1.available() > 0){
+        input = Serial1.readStringUntil('\n');
+        Serial.print("R PI sent: ");
         Serial.print(input);
-        Serial.print('\n');
+        Serial.print("\n");
     }
 }
 
