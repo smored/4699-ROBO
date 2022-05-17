@@ -15,6 +15,8 @@
 #define UART_ADDR "/dev/serial0"
 #define BAUD_RATE 9600
 
+#define MAX_SHOTS 2
+
 //TX 8 (pi to teensy)
 //RX 10 (teensy to pi)
 
@@ -22,7 +24,8 @@ enum ARUCOIDS {
     TARGET1 = 21,
     TARGET2 = 22,
     TARGET3 = 27,
-    TARGET4 = 23
+    TARGET4 = 23,
+    TARGET5 = 29
     //WALL_N
     //WALL_E
     //WALL_S
@@ -72,6 +75,7 @@ private:
     int _serialHandle{};
     std::unordered_map<int, std::string> _statemap;
     std::unordered_map<int, int> _targetmap;
+    int _shots; ///< count how many shots to take per target
 public:
 
     /** @brief default constructor
@@ -112,7 +116,7 @@ public:
 
     /** @brief sets centre member to default
     */
-    void centreDefault() { _centre = cv::Point(SCREEN_X/2, SCREEN_Y/2); }
+    void centreDefault() { _centre = cv::Point(0, 0); }
 
     // getter for milliseconds as int
     //unsigned long int getMillisAsInt() { unsigned long int millis = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); return millis; }

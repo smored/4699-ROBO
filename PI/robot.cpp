@@ -5,15 +5,21 @@ robot::robot() {
     // Initialize variables
     _dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     centreDefault();
-    //_statemap[FIND_T1] = "START";
+    _statemap[NULL_STATE] = "NULL";
+    _statemap[FIND_T1] = "NULL";
     _statemap[FIND_T2] = "ONE";
     _statemap[FIND_T3] = "TWO";
     _statemap[FIND_T4] = "THREE";
     _statemap[DONE] =    "FOUR";
+
+    _targetmap[NULL_STATE] = TARGET1;
     _targetmap[FIND_T1] = TARGET1; // based on the commands sent from client
     _targetmap[FIND_T2] = TARGET2; // 0 = stop, 1 = find target 1, 2 = find target 2, etc. 5 = done
     _targetmap[FIND_T3] = TARGET3;
     _targetmap[FIND_T4] = TARGET4;
+    _targetmap[DONE] = TARGET5;
+
+    _shots = MAX_SHOTS;
 
     // Initialize states and targets
     _currentState = STATE::NULL_STATE;
@@ -72,6 +78,7 @@ void robot::runLoop() {
             // check if state is valid and set
             if (_currentState == STATE::NULL_STATE) {
                 std::cerr << "Waiting in null state" << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(250));
                 continue;
             } else if (!running) {
                 std::cout << "Starting..." << std::endl;
@@ -80,14 +87,21 @@ void robot::runLoop() {
             }
 
             //run through each state until it is finished
+            // waits until new state
             auto lastState = _currentState;
             while(_currentState == lastState) {;}
             std::cout << "STATE " << lastState << " FINISHED, STARTING STATE " << _currentState << std::endl;
-            _targetID = _targetmap.at(_currentState);
-            sendString(_statemap.at(_currentState));
+            // set new ARCUO ID being looked for and send respective command to teensy over UART
+            try {
+                _targetID = _targetmap.at(_currentState);
+                sendString(_statemap.at(_currentState));
+            } catch (std::exception e) {
+                std::cout << "Map ID error " << e.what() << std::endl;
+            }
         } while (!_thread_exit || _currentState > STATE::DONE);
         _thread_exit = true;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(2500));
 }
 
 void robot::videoFeed() {
@@ -109,23 +123,26 @@ void robot::videoFeed() {
                 std::vector<std::vector<cv::Point2f>> corners;
                 cv::aruco::detectMarkers(_canvas, _dictionary, corners, ids);
                 if (ids.size() > 0) {
-                    _tracking = true;
+                    //_tracking = true;
                     cv::aruco::drawDetectedMarkers(_canvas, corners, ids);
 
                     for (int i = 0; i < ids.size(); i++) { // Find centre using rectangle of two points
                         cv::Rect centresquare = cv::Rect(corners.at(i).at(0), corners.at(i).at(2));
                         cv::Point centre = cv::Point(centresquare.x + centresquare.width/2, centresquare.y + centresquare.height/2);
-                        //cv::circle(_canvas, centre, 3, (0,0,255));
 
                         // store location of centre of ARUCO of interest
                         if (ids.at(i) == _targetID) {
+                            _tracking = true;
                             _centre = centre;
-                            //std::cout << "centre of aruco: " << _centre << " With ID: " << ids.at(i) << std::endl;
+                            cv::circle(_canvas, centre, 10, cv::Scalar(255,255,255), 5);
+                        } else {
+                            // if ID of interest is not found, turn off tracking, so servo doesnt run off
+                            _tracking = false;
                         }
                     }
                 } else {
                     // if no IDs are found, turn off tracking, so servo doesnt run off
-                    _tracking = false;
+                    //_tracking = false;
                 }
             } else {
                 std::cerr << "Cavnas Empty!" << std::endl;
@@ -170,35 +187,40 @@ void robot::aimCannon() {
         if (!_tracking) continue;
 
         try {
-
-        static bool firing = false;
-        const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(_turretServo.getDelay());
-        const auto thresh_L = 50 - _targetThresh, thresh_R = 50 + _targetThresh;
-        int centrey = _centre.x;
-        double percentageY = ((double) centrey/(double)SCREEN_X)*100;
-        std::cout << "CENTRE Y: " << centrey << std::endl;
-        std::cout << "PERCENTAGE Y: " << percentageY << std::endl;
-
-        // if within thresholds, fire, otherwise turn to match
-        if (percentageY < thresh_R && percentageY > thresh_L) {
-            if (!firing) { // make sure two threads can never fire simultaneously
-                firing = true;
-                std::cout << "FIRING!" << std::endl;
-                fireCannon();
-                firing = false;
+            // check if run out of shots for single target
+            if (_shots <= 0) {
+                _currentState++;
+                _shots = MAX_SHOTS;
+                //centreDefault();
             }
-        } else {
-            if (percentageY > thresh_R) {
-                std::cout << "TURNING RIGHT" << std::endl;
-                _turretServo.add(false);
-            } else if (percentageY < thresh_L) {
-                std::cout << "TURNING LEFT" << std::endl;
-                _turretServo.add(true);
-            }
-        }
+            static bool firing = false;
+            const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(_turretServo.getDelay());
+            const auto thresh_L = 50 - _targetThresh, thresh_R = 50 + _targetThresh;
+            int centrey = _centre.x;
+            double percentageY = ((double) centrey/(double)SCREEN_X)*100;
+            std::cout << "CENTRE Y: " << centrey << std::endl;
+            std::cout << "PERCENTAGE Y: " << percentageY << std::endl;
 
-        _turretServo.moveServo();
-        std::this_thread::sleep_until(awaketime);
+            // if within thresholds, fire, otherwise turn to match
+            if (percentageY < thresh_R && percentageY > thresh_L) {
+                if (!firing) { // make sure two threads can never fire simultaneously
+                    firing = true;
+                    std::cout << "FIRING!" << std::endl;
+                    fireCannon();
+                    firing = false;
+                }
+            } else {
+                if (percentageY > thresh_R) {
+                    std::cout << "TURNING RIGHT" << std::endl;
+                    _turretServo.add(false);
+                } else if (percentageY < thresh_L) {
+                    std::cout << "TURNING LEFT" << std::endl;
+                    _turretServo.add(true);
+                }
+            }
+
+            _turretServo.moveServo();
+            std::this_thread::sleep_until(awaketime);
         } catch (std::exception e) {
             std::cerr << "aimCannon() exception at: " << e.what() << std::endl;
         }
@@ -212,6 +234,7 @@ void robot::fireCannon() {
     _launcherServo.setPos(1500);
     _launcherServo.moveServo();
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    _shots--;
 }
 
 void robot::serverReceive() {
@@ -222,12 +245,11 @@ void robot::serverReceive() {
 		if (cmds.size() > 0) {
 			for (int i = 0; i < cmds.size(); i++) {
                 std::string command = cmds.at(i);
-                if (command == "im") continue; // ignore im here; is handled by start()
-                // do something with the command
+                // ignore im here; is handled by start()
+                if (command == "im") continue;
+                // get command from client, pass into currentstate
                 _currentState = std::stoi(cmds.at(i));
                 std::cout << "server command at index: " << std::to_string(i) << " : " << cmds.at(i) << std::endl;
-                //std::string reply = cmds.at(i) + " Received";
-                //_server.send_string(reply);
             }
 		}
 	} while (!_thread_exit);
@@ -266,6 +288,10 @@ void robot::uiElements() {
 
         if (cvui::button(_settings, 20, 260, "Manually Increment State")) {
             _currentState++;
+        }
+
+        if (cvui::button(_settings, 300, 260, "Force Close Program")) {
+            _thread_exit = true;
         }
 
         cv::imshow("SETTINGS", _settings);
