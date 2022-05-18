@@ -37,8 +37,28 @@
 		<Linker>
 			<Add option="`opencv-config --ldstaticflags`" />
 		</Linker>
-		<Unit filename="arnold_schwarzenegger.jpg" />
+		<Unit filename="CComms.cpp">
+			<Option compile="0" />
+			<Option link="0" />
+		</Unit>
+		<Unit filename="CComms.h" />
+		<Unit filename="CServo.h">
+			<Option compile="1" />
+		</Unit>
+		<Unit filename="Client.cpp">
+			<Option compile="0" />
+			<Option link="0" />
+		</Unit>
+		<Unit filename="Client.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="robot.cpp" />
+		<Unit filename="robot.h">
+			<Option compile="1" />
+		</Unit>
+		<Unit filename="server.cpp" />
+		<Unit filename="server.h">
+			<Option compile="1" />
+		</Unit>
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>

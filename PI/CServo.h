@@ -5,7 +5,7 @@
 
 #define DEFAULT_SPEED 10
 #define DEFAULT_DELAY 50
-#define DEFAULT_POS 2500
+//#define DEFAULT_POS 2500
 
 /** CServo.h
  *
@@ -21,11 +21,12 @@ private:
     int _pos;
     int _speed;
     int _delay;
+    const int DEFAULT_POS;
     //int _lastPos;
 public:
 
     // Default constructor
-    CServo(int gpio, int speed = DEFAULT_SPEED, int delay = DEFAULT_DELAY, int startpos = DEFAULT_POS) {
+    CServo(int gpio, int speed = DEFAULT_SPEED, int delay = DEFAULT_DELAY, int startpos = 2500) : DEFAULT_POS(startpos) {
         _gpioPin = gpio;
         _pos = startpos;
        // _lastPos = _pos;
