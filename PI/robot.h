@@ -15,7 +15,7 @@
 #define UART_ADDR "/dev/serial0"
 #define BAUD_RATE 9600
 
-#define MAX_SHOTS 2
+#define MAX_SHOTS 1
 
 //TX 8 (pi to teensy)
 //RX 10 (teensy to pi)
@@ -67,7 +67,7 @@ private:
     int _targetID = NULL_STATE; ///< int holding the current target being looked for
     bool _thread_exit = false; ///< condition to exit all threads
     bool _tracking = false; ///< whether or not the system is currently tracking
-    CServo _turretServo = CServo(PINS::TURRET, 10, 50, 1800); ///< servo object for turret
+    CServo _turretServo = CServo(PINS::TURRET, 6, 50, 1800); ///< servo object for turret
     CServo _launcherServo = CServo(PINS::LAUNCHER); ///< servo object for launcher
     bool _manual = false; ///< bool determining manual or automatic mode
     Server _server; ///< Server object

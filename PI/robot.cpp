@@ -22,8 +22,8 @@ robot::robot() {
     _shots = MAX_SHOTS;
 
     // Initialize states and targets
-    _currentState = STATE::NULL_STATE;
-    _targetID = ARUCOIDS::TARGET1;
+    //_currentState = STATE::FIND_T1;
+    //_targetID = ARUCOIDS::TARGET1;
 
     // Initialize pigpio
     robot::initPigpio();
@@ -72,35 +72,45 @@ void robot::runLoop() {
 
     // Only care about states in auto mode
     if (!_manual) {
-        sendString("AUTO");
-        bool running = false;
-        do {
-            // check if state is valid and set
-            if (_currentState == STATE::NULL_STATE) {
-                std::cerr << "Waiting in null state" << std::endl;
-                std::this_thread::sleep_for(std::chrono::milliseconds(250));
-                continue;
-            } else if (!running) {
-                std::cout << "Starting..." << std::endl;
-                sendString("START");
-                running = true;
-            }
 
-            //run through each state until it is finished
-            // waits until new state
-            auto lastState = _currentState;
-            while(_currentState == lastState) {;}
-            std::cout << "STATE " << lastState << " FINISHED, STARTING STATE " << _currentState << std::endl;
-            // set new ARCUO ID being looked for and send respective command to teensy over UART
-            try {
-                _targetID = _targetmap.at(_currentState);
-                sendString(_statemap.at(_currentState));
-            } catch (std::exception e) {
-                std::cout << "Map ID error " << e.what() << std::endl;
-            }
-        } while (!_thread_exit || _currentState > STATE::DONE);
-        _thread_exit = true;
+        // hold states until finished
+        // STATE 1
+        _currentState = FIND_T1;
+        std::cout << "STARTING STATE " << _currentState << std::endl;
+        _targetID = TARGET1;
+        auto lastState = _currentState;
+        while (_currentState <= STATE::FIND_T1);
+
+        // STATE 2
+        std::cout << "STATE " << lastState << " FINISHED, STARTING STATE " << _currentState << std::endl;
+        _targetID = TARGET2;
+        sendString("ONE");
+        lastState = _currentState;
+        while (_currentState <= STATE::FIND_T2);
+
+        // STATE 3
+        std::cout << "STATE " << lastState << " FINISHED, STARTING STATE " << _currentState << std::endl;
+        _targetID = TARGET3;
+        sendString("TWO");
+        lastState = _currentState;
+        while (_currentState <= STATE::FIND_T3);
+
+        // STATE 4
+        std::cout << "STATE " << lastState << " FINISHED, STARTING STATE " << _currentState << std::endl;
+        _targetID = TARGET4;
+        sendString("THREE");
+        // reposition servo here for hitting target 4 b/c its at an odd angle
+        _turretServo.resetServo();
+        lastState = _currentState;
+        while (_currentState <= STATE::FIND_T4);
+
+        // STATE 5
+        std::cout << "STATE " << lastState << " FINISHED, STARTING STATE " << _currentState << std::endl;
+        _targetID = TARGET5;
+        sendString("FOUR");
     }
+
+    _thread_exit = true;
     std::this_thread::sleep_for(std::chrono::milliseconds(2500));
 }
 
@@ -134,7 +144,7 @@ void robot::videoFeed() {
                         if (ids.at(i) == _targetID) {
                             _tracking = true;
                             _centre = centre;
-                            cv::circle(_canvas, centre, 10, cv::Scalar(255,255,255), 5);
+                            cv::circle(_canvas, centre, 10, cv::Scalar(255,0,0), 5);
                         } else {
                             // if ID of interest is not found, turn off tracking, so servo doesnt run off
                             _tracking = false;
@@ -142,7 +152,7 @@ void robot::videoFeed() {
                     }
                 } else {
                     // if no IDs are found, turn off tracking, so servo doesnt run off
-                    //_tracking = false;
+                    _tracking = false;
                 }
             } else {
                 std::cerr << "Cavnas Empty!" << std::endl;
@@ -190,8 +200,10 @@ void robot::aimCannon() {
             // check if run out of shots for single target
             if (_shots <= 0) {
                 _currentState++;
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 _shots = MAX_SHOTS;
                 //centreDefault();
+                continue;
             }
             static bool firing = false;
             const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(_turretServo.getDelay());
@@ -249,7 +261,7 @@ void robot::serverReceive() {
                 if (command == "im") continue;
                 // get command from client, pass into currentstate
                 _currentState = std::stoi(cmds.at(i));
-                std::cout << "server command at index: " << std::to_string(i) << " : " << cmds.at(i) << std::endl;
+                //std::cout << "server command at index: " << std::to_string(i) << " : " << cmds.at(i) << std::endl;
             }
 		}
 	} while (!_thread_exit);
@@ -288,14 +300,35 @@ void robot::uiElements() {
 
         if (cvui::button(_settings, 20, 260, "Manually Increment State")) {
             _currentState++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+
+        if (cvui::button(_settings, 300, 20, "Send \"STOP\"")) {
+            std::cout << "Stopping..." << std::endl;
+            sendString("STOP");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+
+        if (cvui::button(_settings, 300, 120, "Send \"START\"")) {
+            std::cout << "Starting..." << std::endl;
+            sendString("START");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+
+        if (cvui::button(_settings, 300, 200, "Send \"AUTO\"")) {
+            std::cout << "Starting Auto..." << std::endl;
+            sendString("AUTO");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
         if (cvui::button(_settings, 300, 260, "Force Close Program")) {
+            _currentState = 10;
             _thread_exit = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
         cv::imshow("SETTINGS", _settings);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500)); // poll this slower so that other threads can run faster
+       // std::this_thread::sleep_for(std::chrono::milliseconds(500)); // poll this slower so that other threads can run faster
     } while(!_thread_exit);
 }
 
