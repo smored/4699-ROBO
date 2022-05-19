@@ -158,7 +158,9 @@ void robot::videoFeed() {
                                 _tracking = false;
                             }
                         } else {
-
+                            _tracking = true;
+                            _centre = centre;
+                            cv::circle(_canvas, centre, 10, cv::Scalar(255,0,0), 10);
                         }
                     }
                 } else {
@@ -229,25 +231,29 @@ void robot::aimCannon() {
             std::cout << "PERCENTAGE Y: " << percentageY << std::endl;
 
             // ignore if manual
-            if (!MANUAL) {
                 // if within thresholds, fire, otherwise turn to match
                 if (percentageY < thresh_R && percentageY > thresh_L) {
-                    if (!firing) { // make sure two threads can never fire simultaneously
-                        firing = true;
-                        std::cout << "FIRING!" << std::endl;
-                        fireCannon();
-                        firing = false;
+                    if (!MANUAL) {
+                        if (!firing) { // make sure two threads can never fire simultaneously
+                            firing = true;
+                            std::cout << "FIRING!" << std::endl;
+                            fireCannon();
+                            firing = false;
+                        }
+                    } else {
+                        //gpioWrite(PINS::LED, PI_HIGH);
                     }
+                } else {
+                    if (percentageY > thresh_R) {
+                        std::cout << "TURNING RIGHT" << std::endl;
+                        _turretServo.add(false);
+                    } else if (percentageY < thresh_L) {
+                        std::cout << "TURNING LEFT" << std::endl;
+                        _turretServo.add(true);
+                    }
+                    //gpioWrite(PINS::LED, PI_LOW);
                 }
-            } else {
-                if (percentageY > thresh_R) {
-                    std::cout << "TURNING RIGHT" << std::endl;
-                    _turretServo.add(false);
-                } else if (percentageY < thresh_L) {
-                    std::cout << "TURNING LEFT" << std::endl;
-                    _turretServo.add(true);
-                }
-            }
+
 
             _turretServo.moveServo();
             std::this_thread::sleep_until(awaketime);
@@ -383,11 +389,20 @@ void robot::uiElements() {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
+        if (cvui::button(_settings, 300, 200, "Reset Servos")) {
+            _turretServo.resetServo();
+            _launcherServo.resetServo();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+
         if (cvui::button(_settings, 300, 260, "Force Close Program")) {
+            std::cout << "Closing Program..." << std::endl;
             _currentState = 10;
             _thread_exit = true;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
+
+
 
         cv::imshow("SETTINGS", _settings);
     } while(!_thread_exit);

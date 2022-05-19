@@ -9,6 +9,8 @@
 #include "server.h"
 #include <unordered_map>
 
+#define MANUAL false ///< change robot mode
+
 #define SCREEN_X 640
 #define SCREEN_Y 480
 #define IM_PORT 54420
@@ -82,7 +84,6 @@ private:
     bool _tracking = false; ///< whether or not the system is currently tracking
     CServo _turretServo = CServo(PINS::TURRET, 6, 50, 1800); ///< servo object for turret
     CServo _launcherServo = CServo(PINS::LAUNCHER); ///< servo object for launcher
-    const bool MANUAL = true; ///< bool determining manual or automatic mode
     Server _server; ///< Server object
     double _targetThresh = 10;
     int _serialHandle{};
