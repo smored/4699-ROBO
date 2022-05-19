@@ -200,28 +200,28 @@ void loop() {
         
     case MANUAL:
         while(digitalRead(FORWARD_PIN)){
-          rightMotor.setSpeed(50);
-          leftMotor.setSpeed(50);
+          rightMotor.setSpeed(MANUAL_SPEED);
+          leftMotor.setSpeed(MANUAL_SPEED);
           rightMotor.move(100);
           leftMotor.move(100);
           rightMotor.runSpeed();
           leftMotor.runSpeed();
         }
         while(digitalRead(RIGHT_PIN)){
-          leftMotor.setSpeed(50);
+          leftMotor.setSpeed(MANUAL_SPEED/2);
           leftMotor.move(100);
           leftMotor.runSpeed();
         }
         while(digitalRead(LEFT_PIN)){
-          rightMotor.setSpeed(50);
+          rightMotor.setSpeed(MANUAL_SPEED/2);
           rightMotor.move(100);
           rightMotor.runSpeed();
         }
         while(digitalRead(BACK_PIN)){
           rightMotor.move(-100);
           leftMotor.move(-100);
-          rightMotor.setSpeed(-50);
-          leftMotor.setSpeed(-50);
+          rightMotor.setSpeed(-MANUAL_SPEED);
+          leftMotor.setSpeed(-MANUAL_SPEED);
           rightMotor.runSpeed();
           leftMotor.runSpeed();
         }
