@@ -4,6 +4,8 @@
 enum mode { AUTO, MANUAL, NONE };
 enum automaticMode { startWait, target1, target2, target3, target4, finishAUTO };
 enum movementState { forward, turn, forward_second, turn_complete };
+
+
 String input = "NULL";
 
 mode bigMode;
@@ -26,8 +28,13 @@ void setup() {
     // initialize the serial port:
     Serial.begin(9600);
     Serial1.begin(9600);
-    bigMode = NONE;
+    bigMode = MANUAL;
     pinMode(2, INPUT);
+    pinMode (LED_BUILTIN, OUTPUT);
+    pinMode(20, INPUT_PULLDOWN);
+    pinMode(19, INPUT_PULLDOWN);
+    pinMode(18, INPUT_PULLDOWN);
+    pinMode(17, INPUT_PULLDOWN);
 }
 
 void loop() {
@@ -36,6 +43,7 @@ void loop() {
     switch(bigMode){
         //State Machine (Auto)
         case AUTO:
+                Serial.print("AUTO defaulted");
                 switch(autoMode){
                 //State 0
                 case startWait:
@@ -46,10 +54,13 @@ void loop() {
                         stopDriving();
                     }
                     else if(input == STARTCMD){
+                        digitalWrite(LED_BUILTIN, HIGH);
+                        delay(250);
+                        digitalWrite(LED_BUILTIN, LOW);
                         autoMode = target1;
                         input = "";
-                        leftMotor.moveTo(420);
-                        rightMotor.moveTo(420);
+                        leftMotor.moveTo(380);
+                        rightMotor.moveTo(380);
                         target2State = forward;
                         target3State = forward;
                     }
@@ -72,8 +83,8 @@ void loop() {
                         input = "";
                         leftMotor.setCurrentPosition(0);
                         rightMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(480);
-                        rightMotor.moveTo(480);
+                        leftMotor.moveTo(400);
+                        rightMotor.moveTo(400);
                     }
                     break;
                 
@@ -97,8 +108,8 @@ void loop() {
                         input = "";
                         leftMotor.setCurrentPosition(0);
                         rightMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(420);
-                        rightMotor.moveTo(420);
+                        leftMotor.moveTo(370);
+                        rightMotor.moveTo(370);
                     }
                     break;
                 //State 3
@@ -133,7 +144,7 @@ void loop() {
                         leftMotor.setCurrentPosition(0);
                         rightMotor.moveTo(500);
                         leftMotor.moveTo(500);
-                        delay(500);
+                        delay(250);
                     }
                     else if(rightMotor.distanceToGo() != 0 || leftMotor.distanceToGo() != 0){
                       leftMotor.run();
@@ -142,8 +153,10 @@ void loop() {
                     else if(input == TARGET4){
                         autoMode = finishAUTO;
                         input = "";
-                        leftMotor.moveTo(0);
-                        rightMotor.moveTo(0);
+                        rightMotor.setCurrentPosition(0);
+                        leftMotor.setCurrentPosition(0);
+                        leftMotor.moveTo(-560);
+                        rightMotor.moveTo(-560);
                     }
                     
                     //Wait to receive confirmation that Target 4 has been hit
@@ -165,18 +178,18 @@ void loop() {
                     if(input == STOPCMD){
                         stopDriving();
                     }
-                    else if(rightMotor.currentPosition() == 0 && leftMotor.currentPosition() == -70 && leftMotor.distanceToGo() == 0){
-                        delay(500);
+                    else if(rightMotor.currentPosition() == 0 && leftMotor.currentPosition() == -77 && leftMotor.distanceToGo() == 0){
+                        delay(250);
                         rightMotor.setCurrentPosition(0);
                         leftMotor.setCurrentPosition(0);
-                        rightMotor.moveTo(600);
-                        leftMotor.moveTo(600);
+                        rightMotor.moveTo(615);
+                        leftMotor.moveTo(615);
                     }
-                    else if(leftMotor.distanceToGo() == 0 && rightMotor.currentPosition() == 0){
-                        delay(500);
+                    else if(leftMotor.distanceToGo() == 0 && rightMotor.currentPosition() == -560){
+                        delay(250);
                         rightMotor.setCurrentPosition(0);
                         leftMotor.setCurrentPosition(0);
-                        leftMotor.moveTo(-70);
+                        leftMotor.moveTo(-77);
                     }
                     else{
                       leftMotor.run();
@@ -186,34 +199,43 @@ void loop() {
         break;
         
     case MANUAL:
-        //State Machine (Manual)
-        //drive(2000, 2000, 40);
-        //Serial.print("idk man. itll drive or some shit \n");
-        //delay(5000);
-        readPI(input);
-        /*if(input == MOVERIGHT){
-            rightMotor.setCurrentPosition(0);
-            rightMotor.moveTo(5);
+        while(digitalRead(FORWARD_PIN)){
+          rightMotor.setSpeed(50);
+          leftMotor.setSpeed(50);
+          rightMotor.move(100);
+          leftMotor.move(100);
+          rightMotor.runSpeed();
+          leftMotor.runSpeed();
         }
-        if(input == MOVELEFT){
-            leftMotor.setCurrentPosition(0);
-            leftMotor.moveTo(5);
+        while(digitalRead(RIGHT_PIN)){
+          leftMotor.setSpeed(50);
+          leftMotor.move(100);
+          leftMotor.runSpeed();
         }
-        if(input == MOVEBACK){
-            leftMotor.setCurrentPosition(0);
-            leftMotor.moveTo(-5);
-            rightMotor.setCurrentPosition(0);
-            rightMotor.moveTo(-5);
-        }*/
+        while(digitalRead(LEFT_PIN)){
+          rightMotor.setSpeed(50);
+          rightMotor.move(100);
+          rightMotor.runSpeed();
+        }
+        while(digitalRead(BACK_PIN)){
+          rightMotor.move(-100);
+          leftMotor.move(-100);
+          rightMotor.setSpeed(-50);
+          leftMotor.setSpeed(-50);
+          rightMotor.runSpeed();
+          leftMotor.runSpeed();
+        }
         break;
     case NONE:
         readPI(input);
         if(input == AUTOCMD){
           bigMode = AUTO;
           autoMode = startWait;
+          Serial.print("BigMode is AUTO");
         }
         else if(input == MANUALCMD){
           bigMode = MANUAL;
+          Serial.print("BigMode is MANUAL\n\n");
         }
         else{
           bigMode = NONE;
@@ -237,9 +259,9 @@ void moveToTarget(movementState &state){
           if(leftMotor.distanceToGo() == 0 && rightMotor.distanceToGo() == 0){
               leftMotor.setCurrentPosition(0);
               rightMotor.setCurrentPosition(0);
-              leftMotor.moveTo(185);
+              leftMotor.moveTo(145);
               state = turn;
-              delay(500);
+              delay(250);
           }
           else{
               leftMotor.run();
@@ -250,10 +272,10 @@ void moveToTarget(movementState &state){
               if(leftMotor.distanceToGo() == 0 && rightMotor.distanceToGo() == 0){
                   leftMotor.setCurrentPosition(0);
                   rightMotor.setCurrentPosition(0);
-                  leftMotor.moveTo(320);
-                  rightMotor.moveTo(320);
+                  leftMotor.moveTo(290);
+                  rightMotor.moveTo(290);
                   state = forward_second;
-                  delay(500);
+                  delay(250);
              }
              else{
                  leftMotor.run();
