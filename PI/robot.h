@@ -9,7 +9,7 @@
 #include "server.h"
 #include <unordered_map>
 
-#define MANUAL false ///< change robot mode
+#define MANUAL true ///< change robot mode
 
 #define SCREEN_X 640
 #define SCREEN_Y 480

@@ -1,7 +1,9 @@
 # depslib dependency file v1.0
-1651262057 source:/home/pi/Desktop/4699-ROBO/PI/main.cpp
+1652152531 source:/home/pi/Desktop/4699-ROBO/PI/main.cpp
 	<opencv2/opencv.hpp>
+	<opencv2/aruco.hpp>
 	"cvui.h"
+	"robot.h"
 
 1608580898 /usr/include/opencv4/opencv2/opencv.hpp
 	"opencv2/opencv_modules.hpp"
@@ -626,4 +628,110 @@
 
 1608580898 /usr/include/opencv4/opencv2/core/core.hpp
 	"opencv2/core.hpp"
+
+1649016911 source:/home/pi/Desktop/4699-ROBO/PI/cvui.h
+	"cvui.h"
+	<opencv2/opencv.hpp>
+	"cvui.h"
+	<iostream>
+	<vector>
+	<map>
+	<stdarg.h>
+	<opencv2/imgproc/imgproc.hpp>
+	<opencv2/highgui/highgui.hpp>
+	<opencv2/core/core.hpp>
+
+1652921972 source:/home/pi/Desktop/4699-ROBO/PI/robot.cpp
+	"robot.h"
+	"cvui.h"
+
+1652978402 /home/pi/Desktop/4699-ROBO/PI/robot.h
+	<string>
+	<thread>
+	<pigpio.h>
+	<iostream>
+	<opencv2/opencv.hpp>
+	<opencv2/aruco.hpp>
+	"CServo.h"
+	"server.h"
+	<unordered_map>
+
+1608574447 /usr/include/opencv4/opencv2/aruco.hpp
+	<opencv2/core.hpp>
+	<vector>
+	"opencv2/aruco/dictionary.hpp"
+
+1608574447 /usr/include/opencv4/opencv2/aruco/dictionary.hpp
+	<opencv2/core.hpp>
+
+1652978402 source:/home/pi/Desktop/4699-ROBO/PI/robot.h
+	<string>
+	<thread>
+	<pigpio.h>
+	<iostream>
+	<opencv2/opencv.hpp>
+	<opencv2/aruco.hpp>
+	"CServo.h"
+	"server.h"
+	<unordered_map>
+
+1651954302 /home/pi/Desktop/4699-ROBO/PI/PID.h
+
+1651954302 source:/home/pi/Desktop/4699-ROBO/PI/PID.cpp
+	"PID.h"
+
+1651954302 source:/home/pi/Desktop/4699-ROBO/PI/PID.h
+
+1652835643 /home/pi/Desktop/4699-ROBO/PI/CServo.h
+	<pigpio.h>
+	<iostream>
+	<thread>
+
+1652151471 source:/home/pi/Desktop/4699-ROBO/PI/server.cpp
+	"server.h"
+	"Winsock2.h"
+	<sys/types.h>
+	<stdlib.h>
+	<unistd.h>
+	<sys/socket.h>
+	<sys/ioctl.h>
+	<fcntl.h>
+	<netinet/in.h>
+	<netdb.h>
+	<thread>
+
+1652151471 /home/pi/Desktop/4699-ROBO/PI/server.h
+	<iostream>
+	<string>
+	<mutex>
+	<vector>
+	<opencv2/opencv.hpp>
+	<opencv2/opencv.hpp>
+	<X11/Xlib.h>
+
+1652145575 source:/home/pi/Desktop/4699-ROBO/PI/CComms.cpp
+	"CComms.h"
+
+1652146162 /home/pi/Desktop/4699-ROBO/PI/CComms.h
+	<thread>
+	<opencv2/opencv.hpp>
+
+1652316073 source:/home/pi/Desktop/4699-ROBO/PI/CComms.h
+	<thread>
+	<opencv2/opencv.hpp>
+	<pigpio.h>
+
+1652835643 source:/home/pi/Desktop/4699-ROBO/PI/CServo.h
+	<pigpio.h>
+	<iostream>
+	<thread>
+
+1652151471 source:/home/pi/Desktop/4699-ROBO/PI/server.h
+	<iostream>
+	<string>
+	<mutex>
+	<vector>
+	<opencv2/opencv.hpp>
+	<opencv2/opencv.hpp>
+	<X11/Xlib.h>
 
