@@ -16,3 +16,7 @@
 #define STOPCMD   "STOP"
 #define AUTOCMD   "AUTO"
 #define MANUALCMD "MANUAL"
+#define FORWARD_PIN   20
+#define LEFT_PIN      19
+#define RIGHT_PIN     18
+#define BACK_PIN      17

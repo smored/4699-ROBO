@@ -4,6 +4,8 @@
 enum mode { AUTO, MANUAL, NONE };
 enum automaticMode { startWait, target1, target2, target3, target4, finishAUTO };
 enum movementState { forward, turn, forward_second, turn_complete };
+
+
 String input = "NULL";
 
 mode bigMode;
@@ -26,9 +28,13 @@ void setup() {
     // initialize the serial port:
     Serial.begin(9600);
     Serial1.begin(9600);
-    bigMode = NONE;
+    bigMode = MANUAL;
     pinMode(2, INPUT);
     pinMode (LED_BUILTIN, OUTPUT);
+    pinMode(20, INPUT_PULLDOWN);
+    pinMode(19, INPUT_PULLDOWN);
+    pinMode(18, INPUT_PULLDOWN);
+    pinMode(17, INPUT_PULLDOWN);
 }
 
 void loop() {
@@ -37,6 +43,7 @@ void loop() {
     switch(bigMode){
         //State Machine (Auto)
         case AUTO:
+                Serial.print("AUTO defaulted");
                 switch(autoMode){
                 //State 0
                 case startWait:
@@ -192,34 +199,43 @@ void loop() {
         break;
         
     case MANUAL:
-        //State Machine (Manual)
-        //drive(2000, 2000, 40);
-        //Serial.print("idk man. itll drive or some shit \n");
-        //delay(5000);
-        readPI(input);
-        /*if(input == MOVERIGHT){
-            rightMotor.setCurrentPosition(0);
-            rightMotor.moveTo(5);
+        while(digitalRead(FORWARD_PIN)){
+          rightMotor.setSpeed(50);
+          leftMotor.setSpeed(50);
+          rightMotor.move(100);
+          leftMotor.move(100);
+          rightMotor.runSpeed();
+          leftMotor.runSpeed();
         }
-        if(input == MOVELEFT){
-            leftMotor.setCurrentPosition(0);
-            leftMotor.moveTo(5);
+        while(digitalRead(RIGHT_PIN)){
+          leftMotor.setSpeed(50);
+          leftMotor.move(100);
+          leftMotor.runSpeed();
         }
-        if(input == MOVEBACK){
-            leftMotor.setCurrentPosition(0);
-            leftMotor.moveTo(-5);
-            rightMotor.setCurrentPosition(0);
-            rightMotor.moveTo(-5);
-        }*/
+        while(digitalRead(LEFT_PIN)){
+          rightMotor.setSpeed(50);
+          rightMotor.move(100);
+          rightMotor.runSpeed();
+        }
+        while(digitalRead(BACK_PIN)){
+          rightMotor.move(-100);
+          leftMotor.move(-100);
+          rightMotor.setSpeed(-50);
+          leftMotor.setSpeed(-50);
+          rightMotor.runSpeed();
+          leftMotor.runSpeed();
+        }
         break;
     case NONE:
         readPI(input);
         if(input == AUTOCMD){
           bigMode = AUTO;
           autoMode = startWait;
+          Serial.print("BigMode is AUTO");
         }
         else if(input == MANUALCMD){
           bigMode = MANUAL;
+          Serial.print("BigMode is MANUAL\n\n");
         }
         else{
           bigMode = NONE;
