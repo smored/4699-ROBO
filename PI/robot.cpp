@@ -32,6 +32,10 @@ robot::robot() {
     gpioSetPullUpDown(PINS::BUTTON, PI_PUD_UP); // pullup resistor on button
     _turretServo.resetServo();
     _launcherServo.resetServo();
+    gpioSetMode(PINS::FWD, PI_OUTPUT);
+    gpioSetMode(PINS::LFT, PI_OUTPUT);
+    gpioSetMode(PINS::RGT, PI_OUTPUT);
+    gpioSetMode(PINS::REV, PI_OUTPUT);
 
     // Open Serial device
     initSerial();
@@ -71,7 +75,7 @@ void robot::runLoop() {
     t6.detach();
 
     // Only care about states in auto mode
-    if (!_manual) {
+    if (!MANUAL) {
 
         // hold states until finished
         // STATE 1
@@ -108,6 +112,8 @@ void robot::runLoop() {
         std::cout << "STATE " << lastState << " FINISHED, STARTING STATE " << _currentState << std::endl;
         _targetID = TARGET5;
         sendString("FOUR");
+    } else {
+        while(!_thread_exit);
     }
 
     _thread_exit = true;
@@ -140,14 +146,19 @@ void robot::videoFeed() {
                         cv::Rect centresquare = cv::Rect(corners.at(i).at(0), corners.at(i).at(2));
                         cv::Point centre = cv::Point(centresquare.x + centresquare.width/2, centresquare.y + centresquare.height/2);
 
-                        // store location of centre of ARUCO of interest
-                        if (ids.at(i) == _targetID) {
-                            _tracking = true;
-                            _centre = centre;
-                            cv::circle(_canvas, centre, 10, cv::Scalar(255,0,0), 5);
+                        // different behaviour based on manual/auto
+                        if (!MANUAL) {
+                            // store location of centre of ARUCO of interest
+                            if (ids.at(i) == _targetID) {
+                                _tracking = true;
+                                _centre = centre;
+                                cv::circle(_canvas, centre, 10, cv::Scalar(255,0,0), 10);
+                            } else {
+                                // if ID of interest is not found, turn off tracking, so servo doesnt run off
+                                _tracking = false;
+                            }
                         } else {
-                            // if ID of interest is not found, turn off tracking, so servo doesnt run off
-                            _tracking = false;
+
                         }
                     }
                 } else {
@@ -197,14 +208,18 @@ void robot::aimCannon() {
         if (!_tracking) continue;
 
         try {
-            // check if run out of shots for single target
-            if (_shots <= 0) {
-                _currentState++;
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                _shots = MAX_SHOTS;
-                //centreDefault();
-                continue;
+            // ignore if manual
+            if (!MANUAL) {
+                // check if run out of shots for single target
+                if (_shots <= 0) {
+                    _currentState++;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    _shots = MAX_SHOTS;
+                    //centreDefault();
+                    continue;
+                }
             }
+
             static bool firing = false;
             const auto awaketime = std::chrono::system_clock::now() + std::chrono::milliseconds(_turretServo.getDelay());
             const auto thresh_L = 50 - _targetThresh, thresh_R = 50 + _targetThresh;
@@ -213,13 +228,16 @@ void robot::aimCannon() {
             std::cout << "CENTRE Y: " << centrey << std::endl;
             std::cout << "PERCENTAGE Y: " << percentageY << std::endl;
 
-            // if within thresholds, fire, otherwise turn to match
-            if (percentageY < thresh_R && percentageY > thresh_L) {
-                if (!firing) { // make sure two threads can never fire simultaneously
-                    firing = true;
-                    std::cout << "FIRING!" << std::endl;
-                    fireCannon();
-                    firing = false;
+            // ignore if manual
+            if (!MANUAL) {
+                // if within thresholds, fire, otherwise turn to match
+                if (percentageY < thresh_R && percentageY > thresh_L) {
+                    if (!firing) { // make sure two threads can never fire simultaneously
+                        firing = true;
+                        std::cout << "FIRING!" << std::endl;
+                        fireCannon();
+                        firing = false;
+                    }
                 }
             } else {
                 if (percentageY > thresh_R) {
@@ -251,18 +269,56 @@ void robot::fireCannon() {
 
 void robot::serverReceive() {
 	std::vector<std::string> cmds;
+	const char shoot = std::to_string(SHOOT)[0];
+	const char forward_ = std::to_string(FORWARD)[0];
+	const char left = std::to_string(LEFT)[0];
+    const char right = std::to_string(RIGHT)[0];
+    const char back_ = std::to_string(BACK)[0];
 
 	do {
 		_server.get_cmd(cmds);
 		if (cmds.size() > 0) {
-			for (int i = 0; i < cmds.size(); i++) {
-                std::string command = cmds.at(i);
+			//for (int i = 0; i < cmds.size(); i++) {
+                std::string command = cmds.at(0);
+                std::cout << command << std::endl;
                 // ignore im here; is handled by start()
                 if (command == "im") continue;
+
                 // get command from client, pass into currentstate
-                _currentState = std::stoi(cmds.at(i));
-                //std::cout << "server command at index: " << std::to_string(i) << " : " << cmds.at(i) << std::endl;
-            }
+                if (!MANUAL) {
+                    // Auto mode is defined by states
+                    _currentState = std::stoi(command);
+
+                } else {
+                    char charcommand = command[0];
+
+                    // Manual mode is defined by user input
+                    if (charcommand == shoot) { // fire command
+                        fireCannon();
+
+                    } else if (charcommand == forward_) {
+                        gpioWrite(PINS::FWD, PI_HIGH);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                        gpioWrite(PINS::FWD, PI_LOW);
+
+                    } else if (charcommand == left) {
+                        gpioWrite(PINS::LFT, PI_HIGH);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                        gpioWrite(PINS::LFT, PI_LOW);
+
+                    } else if (charcommand == right) {
+                        gpioWrite(PINS::RGT, PI_HIGH);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                        gpioWrite(PINS::RGT, PI_LOW);
+
+                    } else if (charcommand == back_) {
+                        gpioWrite(PINS::REV, PI_HIGH);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                        gpioWrite(PINS::REV, PI_LOW);
+                    }
+
+                }
+           // }
 		}
 	} while (!_thread_exit);
 }
@@ -309,15 +365,21 @@ void robot::uiElements() {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
-        if (cvui::button(_settings, 300, 120, "Send \"START\"")) {
+        if (cvui::button(_settings, 300, 60, "Send \"START\"")) {
             std::cout << "Starting..." << std::endl;
             sendString("START");
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
-        if (cvui::button(_settings, 300, 200, "Send \"AUTO\"")) {
+        if (cvui::button(_settings, 300, 100, "Send \"AUTO\"")) {
             std::cout << "Starting Auto..." << std::endl;
             sendString("AUTO");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+
+        if (cvui::button(_settings, 300, 140, "Send \"MANUAL\"")) {
+            std::cout << "Starting Manual..." << std::endl;
+            sendString("MANUAL");
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
@@ -328,10 +390,14 @@ void robot::uiElements() {
         }
 
         cv::imshow("SETTINGS", _settings);
-       // std::this_thread::sleep_for(std::chrono::milliseconds(500)); // poll this slower so that other threads can run faster
     } while(!_thread_exit);
 }
 
 void robot::sendString(std::string input) {
     serWrite(_serialHandle, &input[0], input.length());
+
+}
+
+void robot::sendChar(char input) {
+    serWriteByte(_serialHandle, input);
 }

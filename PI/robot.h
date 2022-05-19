@@ -45,7 +45,20 @@ enum PINS {
      BUTTON = 23,
      LED = 21,
      TURRET = 17,
-     LAUNCHER = 22
+     LAUNCHER = 22,
+
+     REV = 6,
+     RGT = 13,
+     LFT = 19,
+     FWD = 26
+};
+
+enum MAN_CMDS {
+    SHOOT,
+    FORWARD,
+    LEFT,
+    RIGHT,
+    BACK
 };
 
 
@@ -69,7 +82,7 @@ private:
     bool _tracking = false; ///< whether or not the system is currently tracking
     CServo _turretServo = CServo(PINS::TURRET, 6, 50, 1800); ///< servo object for turret
     CServo _launcherServo = CServo(PINS::LAUNCHER); ///< servo object for launcher
-    bool _manual = false; ///< bool determining manual or automatic mode
+    const bool MANUAL = true; ///< bool determining manual or automatic mode
     Server _server; ///< Server object
     double _targetThresh = 10;
     int _serialHandle{};
@@ -159,4 +172,5 @@ public:
     */
     void sendString(std::string input);
 
+    void sendChar(char input);
 };
