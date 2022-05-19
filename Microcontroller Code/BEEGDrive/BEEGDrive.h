@@ -20,3 +20,4 @@
 #define LEFT_PIN      19
 #define RIGHT_PIN     18
 #define BACK_PIN      17
+#define MANUAL_SPEED  150
